@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+#
+
+#---
+fatal() {
+   echo "ERROR: $1"
+   exit 1
+}
+
+# Environment
+API_HOST=${API_HOST}
+TOKEN=${TOKEN}
+SERVER_CERT_CN="${SERVER_CERT_CN}"
+SERVER_CERT_EXTRA_SANS="${SERVER_CERT_EXTRA_SANS}"
+
+# Args
+while [[ $1 =~ ^(-(t)|--(token|server-cert-cn|server-cert-extra-sans|server-cert-regenerate)) ]]
+do
+  key=$1
+  value=$2
+
+  case $key in
+    -t|--token)
+        TOKEN="$value"
+        shift
+      ;;
+    --server-cert-cn)
+        SERVER_CERT_CN="$value"
+        shift
+      ;;
+    --server-cert-extra-sans)
+        SERVER_CERT_EXTRA_SANS="$value"
+        shift
+      ;;
+    --server-cert-regenerate)
+        GENERATE_SERVER_CERTS="true"
+      ;;
+  esac
+  shift # past argument or value
+done
+
+[[ -z "$TOKEN" ]] && fatal "Missing token"
+
+API_HOST=${API_HOST:-$1}
+[[ -z "$API_HOST" ]] && fatal "Missing API_HOST"
+
+
+DIR=$(dirname $0)
+TMPDIR=/tmp/codefresh/
+TMP_VALIDATE_RESPONCE_FILE=$TMPDIR/validate-responce
+TMP_VALIDATE_HEADERS_FILE=$TMPDIR/validate-headers.txt
+
+TMP_CERTS_FILE_ZIP=$TMPDIR/cf-certs.zip
+TMP_CERTS_HEADERS_FILE=$TMPDIR/cf-certs-response-headers.txt
+CERTS_DIR=/etc/ssl/codefresh
+SRV_TLS_KEY=${CERTS_DIR}/server-key.pem
+SRV_TLS_CSR=${CERTS_DIR}/server-cert.csr
+SRV_TLS_CERT=${CERTS_DIR}/server-cert.pem
+SRV_TLS_CA_CERT=${CERTS_DIR}/cf-ca.pem
+mkdir -p $TMPDIR $CERTS_DIR
+
+echo -e "\n------------------\nGenerating server tls certificates ... "
+### TODO - check by kubectl if codefresh-certs-server exists
+GENERATE_SERVER_CERTS="true"
+SERVER_CERT_CN=${SERVER_CERT_CN:-"docker.codefresh.io"}
+NAMESPACE=${NAMESPACE:-default}
+###
+if [[ "$GENERATE_SERVER_CERTS" == 'true' ]]; then
+  openssl genrsa -out $SRV_TLS_KEY 4096 || fatal "Failed to generate openssl key "
+  openssl req -subj "/CN=${SERVER_CERT_CN}" -new -key $SRV_TLS_KEY -out $SRV_TLS_CSR  || fatal "Failed to generate openssl csr "
+  GENERATE_CERTS=true
+  CSR=$(sed ':a;N;$!ba;s/\n/\\n/g' ${SRV_TLS_CSR})
+
+  SERVER_CERT_SANS="IP:127.0.0.1,DNS:dind,DNS:*.dind.${NAMESPACE},DNS:*.dind.${NAMESPACE}.svc${KUBE_DOMAIN},DNS:*.cf-cd.com,DNS:*.codefresh.io"
+  if [[ -n "${SERVER_CERT_EXTRA_SANS}" ]]; then
+    SERVER_CERT_SANS=${SERVER_CERT_SANS},${SERVER_CERT_EXTRA_SANS}
+  fi
+  echo "{\"serverCertsSans\": \"${SERVER_CERT_SANS}\", \"csr\": \"${CSR}\" }" > ${TMPDIR}/sign_req.json
+
+  rm -fv ${TMP_CERTS_HEADERS_FILE} ${TMP_CERTS_FILE_ZIP}
+  SIGN_STATUS=$(curl -sSL -d @${TMPDIR}/sign_req.json -H "Content-Type: application/json" -H "x-codefresh-api-key: ${TOKEN}" -H "Expect: " \
+        -o ${TMP_CERTS_FILE_ZIP} -D ${TMP_CERTS_HEADERS_FILE} -w '%{http_code}' $API_HOST/sign )
+
+  echo "Sign request completed with HTTP_STATUS_CODE=$SIGN_STATUS"
+  if [[ $SIGN_STATUS != 200 ]]; then
+     echo "ERROR: Cannot sign certificates"
+     if [[ -f ${TMP_CERTS_FILE_ZIP} ]]; then
+       mv ${TMP_CERTS_FILE_ZIP} ${TMP_CERTS_FILE_ZIP}.error
+       cat ${TMP_CERTS_FILE_ZIP}.error
+     fi
+     exit 1
+  fi
+  unzip -o -d ${CERTS_DIR}/  ${TMP_CERTS_FILE_ZIP} || fatal "Failed to unzip certificates to ${CERTS_DIR} "
+
+  kubectl create secret generic codefresh-certs-server \
+      --from-file=$SRV_TLS_KEY \
+      --from-file=$SRV_TLS_CERT || fatal "Failed storing the generated certificates in Kubernetes!"
+
+else
+  echo "Certificates already exist in $CERTS_DIR - Do not generate certificates"
+fi
+
+## Apply assets/*yml
+for ii in $(find ${DIR}/assets -type -f -name *.yml)
+do
+   echo "kubectl apply -f $ii"
+   kubectl apply -f $ii
+done
