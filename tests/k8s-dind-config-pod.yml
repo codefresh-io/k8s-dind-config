@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: k8s-dind-config
+  annotations:
+    forceRedeployUniqId: "N/A"
+  labels:
+    app: dind
+spec:
+  containers:
+  - image: codefresh/k8s-dind-config:latest
+    name: k8s-dind-config
+    imagePullPolicy: Allways
+    command:
+      - "/app/k8s-dind-config"
+    env:
+    - name: API_HOST
+      value: "http://codefresh.dev"
+    - name: TOKEN
+      value: ""

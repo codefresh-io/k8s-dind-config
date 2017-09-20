@@ -1,0 +1,11 @@
+version: '1.0'
+
+steps:
+  build-step:
+    type: build
+    image-name: codefresh/${{CF_REPO_NAME}}
+
+  push to registry:
+    type: push
+    candidate: ${{build-step}}
+    tag: ${{CF_BRANCH}}

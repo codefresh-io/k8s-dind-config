@@ -9,6 +9,8 @@ fatal() {
 
 # Environment
 API_HOST=${API_HOST}
+SIGN_API_PATH=${SIGN_API_PATH:-"/api/nodes/sign"}
+REGISTER_API_PATH=${SIGN_API_PATH:-"/api/nodes/register"}
 TOKEN=${TOKEN}
 SERVER_CERT_CN="${SERVER_CERT_CN}"
 SERVER_CERT_EXTRA_SANS="${SERVER_CERT_EXTRA_SANS}"
@@ -79,7 +81,7 @@ if [[ "$GENERATE_SERVER_CERTS" == 'true' ]]; then
 
   rm -fv ${TMP_CERTS_HEADERS_FILE} ${TMP_CERTS_FILE_ZIP}
   SIGN_STATUS=$(curl -sSL -d @${TMPDIR}/sign_req.json -H "Content-Type: application/json" -H "x-codefresh-api-key: ${TOKEN}" -H "Expect: " \
-        -o ${TMP_CERTS_FILE_ZIP} -D ${TMP_CERTS_HEADERS_FILE} -w '%{http_code}' $API_HOST/sign )
+        -o ${TMP_CERTS_FILE_ZIP} -D ${TMP_CERTS_HEADERS_FILE} -w '%{http_code}' ${API_HOST}/${SIGN_API_PATH} )
 
   echo "Sign request completed with HTTP_STATUS_CODE=$SIGN_STATUS"
   if [[ $SIGN_STATUS != 200 ]]; then
@@ -103,6 +105,9 @@ fi
 ## Apply assets/*yml
 for ii in $(find ${DIR}/assets -type -f -name *.yml)
 do
-   echo "kubectl apply -f $ii"
-   kubectl apply -f $ii
+   echo "kubectl -n${NAMESPACE} apply -f $ii"
+   kubectl apply -f $ii || fatal "failed to apply $ii "
 done
+
+## Register
+
