@@ -1,0 +1,26 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: k8s-dind-config
+  labels:
+    app: dind
+spec:
+  template:
+    metadata:
+      name: k8s-dind-config
+      labels:
+        app: dind
+    spec:
+      restartPolicy: Never
+      containers:
+      - image: codefresh/k8s-dind-config:master
+        name: k8s-dind-config
+        imagePullPolicy: Allways
+        command:
+          - "/app/k8s-dind-config"
+        env:
+        - name: API_HOST
+          value: "http://codefresh.dev"
+        - name: TOKEN
+          value: ""

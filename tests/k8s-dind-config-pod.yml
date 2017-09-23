@@ -9,7 +9,7 @@ metadata:
     app: dind
 spec:
   containers:
-  - image: codefresh/k8s-dind-config:latest
+  - image: codefresh/k8s-dind-config:master
     name: k8s-dind-config
     imagePullPolicy: Allways
     command:
