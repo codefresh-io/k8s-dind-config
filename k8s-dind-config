@@ -9,8 +9,8 @@ fatal() {
 
 # Environment
 API_HOST=${API_HOST}
-SIGN_API_PATH=${SIGN_API_PATH:-"/api/nodes/sign"}
-REGISTER_API_PATH=${SIGN_API_PATH:-"/api/nodes/register"}
+SIGN_API_PATH=${SIGN_API_PATH:-"/api/pki/sign"}
+REGISTER_API_PATH=${REGISTER_API_PATH:-"/api/kubernetes/register"}
 TOKEN=${TOKEN}
 SERVER_CERT_CN="${SERVER_CERT_CN}"
 SERVER_CERT_EXTRA_SANS="${SERVER_CERT_EXTRA_SANS}"
@@ -57,7 +57,7 @@ TMP_CERTS_HEADERS_FILE=$TMPDIR/cf-certs-response-headers.txt
 CERTS_DIR=/etc/ssl/codefresh
 SRV_TLS_KEY=${CERTS_DIR}/server-key.pem
 SRV_TLS_CSR=${CERTS_DIR}/server-cert.csr
-SRV_TLS_CERT=${CERTS_DIR}/server-cert.pem
+SRV_TLS_CERT=${CERTS_DIR}/cf-server-cert.pem
 SRV_TLS_CA_CERT=${CERTS_DIR}/cf-ca.pem
 mkdir -p $TMPDIR $CERTS_DIR
 
@@ -77,7 +77,7 @@ if [[ "$GENERATE_SERVER_CERTS" == 'true' ]]; then
   if [[ -n "${SERVER_CERT_EXTRA_SANS}" ]]; then
     SERVER_CERT_SANS=${SERVER_CERT_SANS},${SERVER_CERT_EXTRA_SANS}
   fi
-  echo "{\"serverCertsSans\": \"${SERVER_CERT_SANS}\", \"csr\": \"${CSR}\" }" > ${TMPDIR}/sign_req.json
+  echo "{\"reqSubjectAltName\": \"${SERVER_CERT_SANS}\", \"csr\": \"${CSR}\" }" > ${TMPDIR}/sign_req.json
 
   rm -fv ${TMP_CERTS_HEADERS_FILE} ${TMP_CERTS_FILE_ZIP}
   SIGN_STATUS=$(curl -sSL -d @${TMPDIR}/sign_req.json -H "Content-Type: application/json" -H "x-codefresh-api-key: ${TOKEN}" -H "Expect: " \
@@ -93,6 +93,7 @@ if [[ "$GENERATE_SERVER_CERTS" == 'true' ]]; then
      exit 1
   fi
   unzip -o -d ${CERTS_DIR}/  ${TMP_CERTS_FILE_ZIP} || fatal "Failed to unzip certificates to ${CERTS_DIR} "
+  cp -v ${CERTS_DIR}/cf-server-cert.pem $SRV_TLS_CERT || fatal "received ${TMP_CERTS_FILE_ZIP} does not contains cf-server-cert.pem"
 
   kubectl create secret generic codefresh-certs-server \
       --from-file=$SRV_TLS_KEY \

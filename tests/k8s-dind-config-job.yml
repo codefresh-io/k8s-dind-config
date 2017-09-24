@@ -16,9 +16,16 @@ spec:
       containers:
       - image: codefresh/k8s-dind-config:master
         name: k8s-dind-config
-        imagePullPolicy: Allways
+        imagePullPolicy: Always
         command:
-          - "/app/k8s-dind-config"
+        #  - "/app/k8s-dind-config"
+           - "/bin/bash"
+           - "-c"
+           - |
+             while true
+             do
+               date; sleep 60
+             done
         env:
         - name: API_HOST
           value: "http://codefresh.dev"
