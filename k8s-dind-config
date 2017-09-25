@@ -9,7 +9,7 @@ fatal() {
 
 # Environment
 API_HOST=${API_HOST}
-SIGN_API_PATH=${SIGN_API_PATH:-"/api/pki/sign"}
+SIGN_API_PATH=${SIGN_API_PATH:-"/api/pki/signServerCerts"}
 REGISTER_API_PATH=${REGISTER_API_PATH:-"/api/kubernetes/register"}
 TOKEN=${TOKEN}
 SERVER_CERT_CN="${SERVER_CERT_CN}"
@@ -57,8 +57,9 @@ TMP_CERTS_HEADERS_FILE=$TMPDIR/cf-certs-response-headers.txt
 CERTS_DIR=/etc/ssl/codefresh
 SRV_TLS_KEY=${CERTS_DIR}/server-key.pem
 SRV_TLS_CSR=${CERTS_DIR}/server-cert.csr
-SRV_TLS_CERT=${CERTS_DIR}/cf-server-cert.pem
-SRV_TLS_CA_CERT=${CERTS_DIR}/cf-ca.pem
+SRV_TLS_CERT=${CERTS_DIR}/server-cert.pem
+CF_SRV_TLS_CERT=${CERTS_DIR}/cf-server-cert.pem
+CF_SRV_TLS_CA_CERT=${CERTS_DIR}/cf-ca.pem
 mkdir -p $TMPDIR $CERTS_DIR
 
 echo -e "\n------------------\nGenerating server tls certificates ... "
@@ -80,7 +81,7 @@ if [[ "$GENERATE_SERVER_CERTS" == 'true' ]]; then
   echo "{\"reqSubjectAltName\": \"${SERVER_CERT_SANS}\", \"csr\": \"${CSR}\" }" > ${TMPDIR}/sign_req.json
 
   rm -fv ${TMP_CERTS_HEADERS_FILE} ${TMP_CERTS_FILE_ZIP}
-  SIGN_STATUS=$(curl -sSL -d @${TMPDIR}/sign_req.json -H "Content-Type: application/json" -H "x-codefresh-api-key: ${TOKEN}" -H "Expect: " \
+  SIGN_STATUS=$(curl -sSL -d @${TMPDIR}/sign_req.json -H "Content-Type: application/json" -H "x-access-token: ${TOKEN}" -H "Expect: " \
         -o ${TMP_CERTS_FILE_ZIP} -D ${TMP_CERTS_HEADERS_FILE} -w '%{http_code}' ${API_HOST}/${SIGN_API_PATH} )
 
   echo "Sign request completed with HTTP_STATUS_CODE=$SIGN_STATUS"
@@ -93,7 +94,7 @@ if [[ "$GENERATE_SERVER_CERTS" == 'true' ]]; then
      exit 1
   fi
   unzip -o -d ${CERTS_DIR}/  ${TMP_CERTS_FILE_ZIP} || fatal "Failed to unzip certificates to ${CERTS_DIR} "
-  cp -v ${CERTS_DIR}/cf-server-cert.pem $SRV_TLS_CERT || fatal "received ${TMP_CERTS_FILE_ZIP} does not contains cf-server-cert.pem"
+  cp -v ${CF_SRV_TLS_CERT} $SRV_TLS_CERT || fatal "received ${TMP_CERTS_FILE_ZIP} does not contains cf-server-cert.pem"
 
   kubectl create secret generic codefresh-certs-server \
       --from-file=$SRV_TLS_KEY \
@@ -104,7 +105,7 @@ else
 fi
 
 ## Apply assets/*yml
-for ii in $(find ${DIR}/assets -type -f -name *.yml)
+for ii in $(find ${DIR}/assets -type f -name *.yml)
 do
    echo "kubectl apply -f $ii"
    kubectl apply -f $ii || fatal "failed to apply $ii "
