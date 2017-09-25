@@ -9,8 +9,8 @@ fatal() {
 
 # Environment
 API_HOST=${API_HOST}
-SIGN_API_PATH=${SIGN_API_PATH:-"/api/pki/signServerCerts"}
-REGISTER_API_PATH=${REGISTER_API_PATH:-"/api/kubernetes/register"}
+SIGN_API_PATH=${SIGN_API_PATH:-"api/pki/signServerCerts"}
+REGISTER_API_PATH=${REGISTER_API_PATH:-"api/kubernetes/register"}
 TOKEN=${TOKEN}
 SERVER_CERT_CN="${SERVER_CERT_CN}"
 SERVER_CERT_EXTRA_SANS="${SERVER_CERT_EXTRA_SANS}"
@@ -62,13 +62,15 @@ CF_SRV_TLS_CERT=${CERTS_DIR}/cf-server-cert.pem
 CF_SRV_TLS_CA_CERT=${CERTS_DIR}/cf-ca.pem
 mkdir -p $TMPDIR $CERTS_DIR
 
+K8S_CERT_SECRET_NAME=codefresh-certs-server
+
 echo -e "\n------------------\nGenerating server tls certificates ... "
 ### TODO - check by kubectl if codefresh-certs-server exists
-GENERATE_SERVER_CERTS="true"
+REGENERATE_SERVER_CERTS="true"
 SERVER_CERT_CN=${SERVER_CERT_CN:-"docker.codefresh.io"}
 NAMESPACE=${NAMESPACE:-default}
 ###
-if [[ "$GENERATE_SERVER_CERTS" == 'true' ]]; then
+if [[ "$REGENERATE_SERVER_CERTS" == 'true' ]]; then
   openssl genrsa -out $SRV_TLS_KEY 4096 || fatal "Failed to generate openssl key "
   openssl req -subj "/CN=${SERVER_CERT_CN}" -new -key $SRV_TLS_KEY -out $SRV_TLS_CSR  || fatal "Failed to generate openssl csr "
   GENERATE_CERTS=true
@@ -96,7 +98,11 @@ if [[ "$GENERATE_SERVER_CERTS" == 'true' ]]; then
   unzip -o -d ${CERTS_DIR}/  ${TMP_CERTS_FILE_ZIP} || fatal "Failed to unzip certificates to ${CERTS_DIR} "
   cp -v ${CF_SRV_TLS_CERT} $SRV_TLS_CERT || fatal "received ${TMP_CERTS_FILE_ZIP} does not contains cf-server-cert.pem"
 
-  kubectl create secret generic codefresh-certs-server \
+
+  if kubectl get secret "${K8S_CERT_SECRET_NAME}"; then
+     kubectl delete secret "${K8S_CERT_SECRET_NAME}"
+  fi
+  kubectl create secret generic $K8S_CERT_SECRET_NAME \
       --from-file=$SRV_TLS_KEY \
       --from-file=$SRV_TLS_CERT || fatal "Failed storing the generated certificates in Kubernetes!"
 
