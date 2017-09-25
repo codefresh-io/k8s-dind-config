@@ -8,7 +8,7 @@ metadata:
 spec:
   template:
     metadata:
-      name: k8s-dind-config
+      generateName: k8s-dind-config
       labels:
         app: dind
     spec:
@@ -26,14 +26,14 @@ spec:
                 - |
                   echo "192.168.99.100  codefresh.dev" >> /etc/hosts
         command:
-          - "/app/k8s-dind-config"
-#           - "/bin/bash"
-#           - "-c"
-#           - |
-#             while true
-#             do
-#               date; sleep 60
-#             done
+        #- "/app/k8s-dind-config"
+          - "/bin/bash"
+          - "-c"
+          - |
+            while true
+            do
+              date; sleep 60
+            done
         env:
         - name: NAMESPACE
           valueFrom:
@@ -42,6 +42,6 @@ spec:
         - name: API_HOST
           value: "http://codefresh.dev"
         - name: SIGN_API_PATH
-          value: "/api/pki/signServerCerts"
+          value: "api/pki/signServerCerts"
         - name: TOKEN
-          value: ""
+          value: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJfaWQiOiI1OWM1ZTA3ZjJiM2I0ZTIwYjMwM2NhNzEiLCJhY2NvdW50SWQiOiI1OWM1ZTA3ZjJiM2I0ZTIwYjMwM2NhNzIiLCJpYXQiOjE1MDYyNjE1NjIsImV4cCI6MTUwODg1MzU2Mn0.fpMNtEiNS1B37yFmI3yup7VtQe55EJHPQOrlWUa2ImU"

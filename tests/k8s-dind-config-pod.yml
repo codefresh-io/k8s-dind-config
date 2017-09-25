@@ -12,6 +12,14 @@ spec:
   - image: codefresh/k8s-dind-config:master
     name: k8s-dind-config
     imagePullPolicy: Allways
+    lifecycle:
+      postStart:
+        exec:
+          command:
+            - "/bin/bash"
+            - "-c"
+            - |
+              echo "192.168.99.100  codefresh.dev" >> /etc/hosts
     command:
       - "/app/k8s-dind-config"
     env:

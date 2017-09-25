@@ -111,7 +111,7 @@ else
 fi
 
 ## Apply assets/*yml
-for ii in $(find ${DIR}/assets -type f -name *.yml)
+for ii in $(find ${DIR}/assets -type f -name "*.yml")
 do
    echo "kubectl apply -f $ii"
    kubectl apply -f $ii || fatal "failed to apply $ii "
