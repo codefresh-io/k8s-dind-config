@@ -38,7 +38,7 @@ data:
           "build":"cpuperiod"
        },
        "memory":{
-          "value":1572864000,
+          "value":4194304000,
           "compose":{
              "v1":"mem_limit",
              "v2":"mem_limit",
