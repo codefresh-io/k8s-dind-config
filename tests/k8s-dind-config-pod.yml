@@ -11,7 +11,7 @@ spec:
   containers:
   - image: codefresh/k8s-dind-config:master
     name: k8s-dind-config
-    imagePullPolicy: Allways
+    imagePullPolicy: Always
     lifecycle:
       postStart:
         exec:
