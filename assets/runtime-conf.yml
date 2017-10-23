@@ -8,58 +8,7 @@ metadata:
   name: codefresh-resource-limitations
 data:
   resource-limitations.json: |
-    {
-       "cpuShares":{
-          "value":128,
-          "compose":{
-             "v1":"cpu_shares",
-             "v2":"cpu_shares",
-             "v2.1":"cpu_shares"
-          },
-          "container":"CpuShares",
-          "build":"cpushares"
-       },
-       "cpuQuota":{
-          "value":15000,
-          "compose":{
-             "v1":"cpu_quota",
-             "v2":"cpu_quota",
-             "v2.1":"cpu_quota"
-          },
-          "container":"CpuQuota",
-          "build":"cpuquota"
-       },
-       "cpuPeriod":{
-          "value":10000,
-          "compose":{
-
-          },
-          "container":"CpuPeriod",
-          "build":"cpuperiod"
-       },
-       "memory":{
-          "value":4194304000,
-          "compose":{
-             "v1":"mem_limit",
-             "v2":"mem_limit",
-             "v2.1":"mem_limit  "
-          },
-          "container":"Memory",
-          "build":"memory"
-       },
-       "memorySwap":{
-          "value":-1,
-          "compose":{
-             "v1":"memswap_limit",
-             "v2":"memswap_limit",
-             "v2.1":"memswap_limit"
-          },
-          "container":"MemorySwap",
-          "build":"memswap"
-       }
-    }
-
-
+    {}
 ---
 apiVersion: v1
 kind: Secret

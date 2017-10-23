@@ -8,6 +8,7 @@ metadata:
   labels:
     app: dind
 spec:
+  restartPolicy: Never
   containers:
   - image: codefresh/k8s-dind-config:master
     name: k8s-dind-config
@@ -36,7 +37,9 @@ spec:
             fieldPath: metadata.namespace
       - name: API_HOST
         value: "http://codefresh.dev"
-      - name: SIGN_API_PATH
-        value: "api/pki/signServerCerts"
-      - name: TOKEN
+      - name: API_TOKEN
         value: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJfaWQiOiI1OWM1ZTA3ZjJiM2I0ZTIwYjMwM2NhNzEiLCJhY2NvdW50SWQiOiI1OWM1ZTA3ZjJiM2I0ZTIwYjMwM2NhNzIiLCJpYXQiOjE1MDYyNjE1NjIsImV4cCI6MTUwODg1MzU2Mn0.fpMNtEiNS1B37yFmI3yup7VtQe55EJHPQOrlWUa2ImU"
+      - name: REGISTRY_TOKEN
+        value: ""
+      - name: CLUSTER_NAME
+        value: "minikube-test"

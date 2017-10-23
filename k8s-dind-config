@@ -9,21 +9,17 @@ fatal() {
 
 # Environment
 API_HOST=${API_HOST}
-SIGN_API_PATH=${SIGN_API_PATH:-"api/pki/signServerCerts"}
-REGISTER_API_PATH=${REGISTER_API_PATH:-"api/kubernetes/register"}
-TOKEN=${TOKEN}
-SERVER_CERT_CN="${SERVER_CERT_CN}"
-SERVER_CERT_EXTRA_SANS="${SERVER_CERT_EXTRA_SANS}"
+
 
 # Args
-while [[ $1 =~ ^(-(t)|--(token|server-cert-cn|server-cert-extra-sans|server-cert-regenerate)) ]]
+while [[ $1 =~ ^(-(t)|--(token|server-cert-cn|server-cert-extra-sans)) ]]
 do
   key=$1
   value=$2
 
   case $key in
-    -t|--token)
-        TOKEN="$value"
+    -t|--api-token)
+        API_TOKEN="$value"
         shift
       ;;
     --server-cert-cn)
@@ -34,18 +30,21 @@ do
         SERVER_CERT_EXTRA_SANS="$value"
         shift
       ;;
-    --server-cert-regenerate)
-        GENERATE_SERVER_CERTS="true"
-      ;;
   esac
   shift # past argument or value
 done
 
-[[ -z "$TOKEN" ]] && fatal "Missing token"
+API_VALIDATE_PATH=${SIGN_VALIDATE_PATH:-"api/custom_clusters/signServerCerts"}
+API_SIGN_PATH=${API_SIGN_PATH:-"api/custom_clusters/signServerCerts"}
+API_REGISTER_PATH=${API_REGISTER_PATH:-"api/custom_clusters/register"}
+API_TOKEN=${API_TOKEN}
+SERVER_CERT_CN="${SERVER_CERT_CN}"
+SERVER_CERT_EXTRA_SANS="${SERVER_CERT_EXTRA_SANS}"
 
-API_HOST=${API_HOST:-$1}
+[[ -z "$API_TOKEN" ]] && fatal "Missing token"
 [[ -z "$API_HOST" ]] && fatal "Missing API_HOST"
 
+NAMESPACE=${NAMESPACE:-default}
 
 DIR=$(dirname $0)
 TMPDIR=/tmp/codefresh/
@@ -63,14 +62,36 @@ CF_SRV_TLS_CA_CERT=${CERTS_DIR}/cf-ca.pem
 mkdir -p $TMPDIR $CERTS_DIR
 
 K8S_CERT_SECRET_NAME=codefresh-certs-server
+# docker info 2>/dev/null | awk 'BEGIN{FS=": "}/Storage Driver:/{print $2}'
+
+echo -e "\n------------------\nValidating and get values from API HOST  ... "
+echo "{\"clusterName\": \"$CLUSTER_NAME\", \"namespace\": \"$NAMESPACE\"}" > ${TMPDIR}/validate_req.json
+
+VALIDATE_STATUS=$(curl -sSL -d @${TMPDIR}/validate_req.json  -H "Content-Type: application/json" -H "x-codefresh-api-key: ${API_TOKEN}" \
+      -o ${TMP_VALIDATE_RESPONCE_FILE} -D ${TMP_VALIDATE_HEADERS_FILE} -w '%{http_code}' ${API_HOST}/${API_VALIDATE_PATH} )
+echo "Validate Node request completed with HTTP_STATUS_CODE=$VALIDATE_STATUS"
+if [[ $VALIDATE_STATUS != 200 ]]; then
+   echo "ERROR: Node Validation failed"
+   if [[ -f ${TMP_VALIDATE_RESPONCE_FILE} ]]; then
+     mv ${TMP_VALIDATE_RESPONCE_FILE} ${TMP_VALIDATE_RESPONCE_FILE}.error
+     cat ${TMP_VALIDATE_RESPONCE_FILE}.error
+   fi
+   exit 1
+fi
+
+echo "Validate responce: "
+cat ${TMP_VALIDATE_RESPONCE_FILE}
+source ${TMP_VALIDATE_RESPONCE_FILE}
+
+[[ -z "$CODEFRESH_USERNAME" ]] && fatal "Validation failed - cannot get CODEFRESH_USERNAME"
+
 
 echo -e "\n------------------\nGenerating server tls certificates ... "
 ### TODO - check by kubectl if codefresh-certs-server exists
-REGENERATE_SERVER_CERTS="true"
+
 SERVER_CERT_CN=${SERVER_CERT_CN:-"docker.codefresh.io"}
-NAMESPACE=${NAMESPACE:-default}
 ###
-if [[ "$REGENERATE_SERVER_CERTS" == 'true' ]]; then
+
   openssl genrsa -out $SRV_TLS_KEY 4096 || fatal "Failed to generate openssl key "
   openssl req -subj "/CN=${SERVER_CERT_CN}" -new -key $SRV_TLS_KEY -out $SRV_TLS_CSR  || fatal "Failed to generate openssl csr "
   GENERATE_CERTS=true
@@ -83,8 +104,8 @@ if [[ "$REGENERATE_SERVER_CERTS" == 'true' ]]; then
   echo "{\"reqSubjectAltName\": \"${SERVER_CERT_SANS}\", \"csr\": \"${CSR}\" }" > ${TMPDIR}/sign_req.json
 
   rm -fv ${TMP_CERTS_HEADERS_FILE} ${TMP_CERTS_FILE_ZIP}
-  SIGN_STATUS=$(curl -sSL -d @${TMPDIR}/sign_req.json -H "Content-Type: application/json" -H "x-access-token: ${TOKEN}" -H "Expect: " \
-        -o ${TMP_CERTS_FILE_ZIP} -D ${TMP_CERTS_HEADERS_FILE} -w '%{http_code}' ${API_HOST}/${SIGN_API_PATH} )
+  SIGN_STATUS=$(curl -sSL -d @${TMPDIR}/sign_req.json -H "Content-Type: application/json" -H "x-access-token: ${API_TOKEN}" -H "Expect: " \
+        -o ${TMP_CERTS_FILE_ZIP} -D ${TMP_CERTS_HEADERS_FILE} -w '%{http_code}' ${API_HOST}/${API_SIGN_PATH} )
 
   echo "Sign request completed with HTTP_STATUS_CODE=$SIGN_STATUS"
   if [[ $SIGN_STATUS != 200 ]]; then
@@ -106,16 +127,41 @@ if [[ "$REGENERATE_SERVER_CERTS" == 'true' ]]; then
       --from-file=$SRV_TLS_KEY \
       --from-file=$SRV_TLS_CERT || fatal "Failed storing the generated certificates in Kubernetes!"
 
-else
-  echo "Certificates already exist in $CERTS_DIR - Do not generate certificates"
-fi
+###
 
 ## Apply assets/*yml
+echo -e "\n------------------\nApply kubernetes asset templates ... "
 for ii in $(find ${DIR}/assets -type f -name "*.yml")
 do
-   echo "kubectl apply -f $ii"
-   kubectl apply -f $ii || fatal "failed to apply $ii "
+   echo -e "\nkubectl apply -f $ii"
+   ASSET_YAML=${TMPDIR}/$(basename $ii)
+   ${DIR}/template.sh $ii > ${ASSET_YAML}
+   cat $ASSET_YAML
+   kubectl apply -f $ASSET_YAML || fatal "failed to apply $ii "
+
+   echo "-------"
 done
 
-## Register
 
+echo -e "\n------------------\nRegistering Cluster Namespace ... "
+REGISTER_DATA=\
+"{\"clusterName\": \"${CLUSTER_NAME}\",
+\"namespace\": \"${NAMESPACE}\"
+}"
+
+echo "${REGISTER_DATA}" > ${TMPDIR}/register_data.json
+
+rm -f ${TMPDIR}/register.out ${TMPDIR}/register_responce_headers.out
+REGISTER_STATUS=$(curl -sSL -d @${TMPDIR}/register_data.json -H "Content-Type: application/json" -H "x-codefresh-api-key: ${API_TOKEN}" \
+    -o ${TMPDIR}/register.out -D ${TMPDIR}/register_responce_headers.out -w '%{http_code}' ${API_HOST}/${API_REGISTER_PATH} )
+
+
+echo "Registration request completed with HTTP_STATUS_CODE=$REGISTER_STATUS"
+if [[ $REGISTER_STATUS == 200 ]]; then
+ echo -e "Cluster Namespace has been successfully registered with Codefresh\n------"
+else
+ echo "ERROR: Failed to register cluster node with Codefresh"
+ [[ -f ${TMPDIR}/register.out ]] && cat ${TMPDIR}/register.out
+ echo -e "\n----\n"
+ exit 1
+fi
