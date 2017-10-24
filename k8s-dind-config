@@ -10,9 +10,9 @@ fatal() {
 exit_trap () {
   local lc="$BASH_COMMAND" rc=$?
   if [ $rc != 0 ]; then
-    if [[ -n "SLEEP_ON_ERROR" ]]; then
+    if [[ -n "$SLEEP_ON_ERROR" ]]; then
       echo "SLEEP_ON_ERROR is set - Sleeping to fix error"
-      sleep 3600
+      sleep $SLEEP_ON_ERROR
     fi
   fi
 }
