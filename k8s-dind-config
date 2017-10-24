@@ -7,6 +7,17 @@ fatal() {
    exit 1
 }
 
+exit_trap () {
+  local lc="$BASH_COMMAND" rc=$?
+  if [ $rc != 0 ]; then
+    if [[ -n "SLEEP_ON_ERROR" ]]; then
+      echo "SLEEP_ON_ERROR is set - Sleeping to fix error"
+      sleep 3600
+    fi
+  fi
+}
+trap exit_trap EXIT
+
 # Environment
 API_HOST=${API_HOST}
 
@@ -67,7 +78,7 @@ K8S_CERT_SECRET_NAME=codefresh-certs-server
 echo -e "\n------------------\nValidating and get values from API HOST  ... "
 echo "{\"clusterName\": \"$CLUSTER_NAME\", \"namespace\": \"$NAMESPACE\"}" > ${TMPDIR}/validate_req.json
 
-VALIDATE_STATUS=$(curl -sSL -d @${TMPDIR}/validate_req.json  -H "Content-Type: application/json" -H "x-codefresh-api-key: ${API_TOKEN}" \
+VALIDATE_STATUS=$(curl -sSL -d @${TMPDIR}/validate_req.json  -H "Content-Type: application/json" -H "x-access-token: ${API_TOKEN}" \
       -o ${TMP_VALIDATE_RESPONCE_FILE} -D ${TMP_VALIDATE_HEADERS_FILE} -w '%{http_code}' ${API_HOST}/${API_VALIDATE_PATH} )
 echo "Validate Node request completed with HTTP_STATUS_CODE=$VALIDATE_STATUS"
 if [[ $VALIDATE_STATUS != 200 ]]; then
@@ -152,7 +163,7 @@ REGISTER_DATA=\
 echo "${REGISTER_DATA}" > ${TMPDIR}/register_data.json
 
 rm -f ${TMPDIR}/register.out ${TMPDIR}/register_responce_headers.out
-REGISTER_STATUS=$(curl -sSL -d @${TMPDIR}/register_data.json -H "Content-Type: application/json" -H "x-codefresh-api-key: ${API_TOKEN}" \
+REGISTER_STATUS=$(curl -sSL -d @${TMPDIR}/register_data.json -H "Content-Type: application/json" -H "x-access-token: ${API_TOKEN}" \
     -o ${TMPDIR}/register.out -D ${TMPDIR}/register_responce_headers.out -w '%{http_code}' ${API_HOST}/${API_REGISTER_PATH} )
 
 

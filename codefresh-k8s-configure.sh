@@ -34,9 +34,8 @@ set -e
 
 # Environment
 API_HOST=${API_HOST}
-[[ -z "${API_HOST}" ]] && fatal "API_HOST is not set"
-
-while [[ $1 =~ ^(--(api-token|registry-token|namespace|context|image-tag)) ]]
+FORCE=
+while [[ $1 =~ ^(--(api-host|api-token|registry-token|namespace|context|image-tag|force)) ]]
 do
   key=$1
   value=$2
@@ -45,6 +44,13 @@ do
     -h)
       usage
       exit 0
+      ;;
+    --force)
+      FORCE="true"
+      ;;
+    --api-host)
+      API_HOST=$value
+      shift
       ;;
     --api-token)
       API_TOKEN=$value
@@ -67,19 +73,28 @@ do
       shift
       ;;
   esac
+  shift
 done
 
 CLUSTER_NAME="${1}"
 [[ -z ${CLUSTER_NAME} ]] && usage && exit 1
 
-if [[ -z ${API_TOKEN} ]]; then
-   echo "Enter Codefresh API token: (see ${API_HOST}/api ) "
-   read -r -p "    " API_TOKEN
-fi
+if [[ -z "$FORCE" ]]; then
+    if [[ -z ${API_HOST} ]]; then
+       echo "Enter Codefresh Address: ( example: https://g.codefresh.io ) "
+       read -r -p "    " API_HOST
+    fi
+    [[ -z "${API_HOST}" ]] && fatal "API_HOST is not set"
 
-if [[ -z ${REGISTRY_TOKEN} ]]; then
-   echo "Enter Codefresh Docker Registry token: (see https://docs.codefresh.io/v1.0/docs/codefresh-registry )"
-   read -r -p "    " REGISTRY_TOKEN
+    if [[ -z ${API_TOKEN} ]]; then
+       echo "Enter Codefresh API token: (see ${API_HOST}/api ) "
+       read -r -p "    " API_TOKEN
+    fi
+
+    if [[ -z ${REGISTRY_TOKEN} ]]; then
+       echo "Enter Codefresh Docker Registry token: (see https://docs.codefresh.io/v1.0/docs/codefresh-registry )"
+       read -r -p "    " REGISTRY_TOKEN
+    fi
 fi
 
 if [[ -z "${API_TOKEN}" || -z "${CLUSTER_NAME}" ]]; then
@@ -96,11 +111,14 @@ KUBECTL="kubectl $KUBECTL_OPTIONS "
 
 echo "We are going to start Codefresh Configuration Pod using:
    $KUBECTL -f <codefresh-config-pod>"
-read -r -p "Would you like to continue? [Y/n]: " CONTINUE
-CONTINUE=${CONTINUE,,} # tolower
-if [[ ! $CONTINUE =~ ^(yes|y) ]]; then
-  echo "Exiting ..."
-  exit 0
+
+if [[ -z "$FORCE" ]]; then
+    read -r -p "Would you like to continue? [Y/n]: " CONTINUE
+    CONTINUE=${CONTINUE,,} # tolower
+    if [[ ! $CONTINUE =~ ^(yes|y) ]]; then
+      echo "Exiting ..."
+      exit 0
+    fi
 fi
 
 POD_NAME=codefresh-configure-$(date '+%Y-%m-%d-%H%M%S')
@@ -139,10 +157,16 @@ spec:
         value: "${REGISTRY_TOKEN}"
       - name: CLUSTER_NAME
         value: "${CLUSTER_NAME}"
+      - name: SLEEP_ON_ERROR
+        value: "${SLEEP_ON_ERROR}"
 EOF
 
 
 cat ${POD_DEF_FILE}
 
-echo $KUBECTL apply -f ${POD_DEF_FILE}
+KUBECTL_COMMAND="$KUBECTL apply -f ${POD_DEF_FILE}"
+echo $KUBECTL_COMMAND
 
+eval $KUBECTL_COMMAND
+
+$KUBECTL get pod $POD_NAME -owide
