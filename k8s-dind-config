@@ -45,7 +45,7 @@ do
   shift # past argument or value
 done
 
-API_VALIDATE_PATH=${SIGN_VALIDATE_PATH:-"api/custom_clusters/signServerCerts"}
+API_VALIDATE_PATH=${SIGN_VALIDATE_PATH:-"api/custom_clusters/validate"}
 API_SIGN_PATH=${API_SIGN_PATH:-"api/custom_clusters/signServerCerts"}
 API_REGISTER_PATH=${API_REGISTER_PATH:-"api/custom_clusters/register"}
 API_TOKEN=${API_TOKEN}
@@ -94,7 +94,7 @@ echo "Validate responce: "
 cat ${TMP_VALIDATE_RESPONCE_FILE}
 source ${TMP_VALIDATE_RESPONCE_FILE}
 
-[[ -z "$CODEFRESH_USERNAME" ]] && fatal "Validation failed - cannot get CODEFRESH_USERNAME"
+[[ -z "$CF_REGISTRY_DOMAIN" ]] && fatal "Validation failed - cannot get CF_REGISTRY_DOMAIN"
 
 
 echo -e "\n------------------\nGenerating server tls certificates ... "

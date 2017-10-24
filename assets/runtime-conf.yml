@@ -17,9 +17,14 @@ metadata:
 stringData:
   internal-registry.json: |
     {
-      "kind": "standard",
-      "domain": "192.168.99.100:5000",
-      "repositoryPrefix": "internal"
+      "kind": "standard" ,
+      "domain": "{{CF_REGISTRY_DOMAIN}}",
+      "username": "{{CF_REGISTRY_USER}}",
+      "password": "{{REGISTRY_TOKEN}}",
+      "repositoryPrefix": "internal",
+      "connection": {
+        "protocol": "{{CF_REGISTRY_PROTOCOL}}"
+      }
     }
   additional-internal-registries.json: |
     []
