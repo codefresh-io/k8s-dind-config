@@ -11,7 +11,7 @@ exit_trap () {
   local lc="$BASH_COMMAND" rc=$?
   if [ $rc != 0 ]; then
     if [[ -n "$SLEEP_ON_ERROR" ]]; then
-      echo "SLEEP_ON_ERROR is set - Sleeping to fix error"
+      echo -e "\nSLEEP_ON_ERROR is set - Sleeping to fix error"
       sleep $SLEEP_ON_ERROR
     fi
   fi
@@ -146,8 +146,8 @@ for ii in $(find ${DIR}/assets -type f -name "*.yml")
 do
    echo -e "\nkubectl apply -f $ii"
    ASSET_YAML=${TMPDIR}/$(basename $ii)
-   ${DIR}/template.sh $ii > ${ASSET_YAML}
-   cat $ASSET_YAML
+   ${DIR}/template.sh -e ${TMP_VALIDATE_RESPONCE_FILE} $ii > ${ASSET_YAML}
+   # cat $ASSET_YAML
    kubectl apply -f $ASSET_YAML || fatal "failed to apply $ii "
 
    echo "-------"
