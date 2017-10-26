@@ -16,6 +16,7 @@ data:
       "tlscacert": "/etc/ssl/cf-client/ca.pem",
       "tlscert": "/etc/ssl/cf/server-cert.pem",
       "tlskey": "/etc/ssl/cf/server-key.pem",
+      "insecure-registries" : ["192.168.99.100:5000"],
       "metrics-addr" : "0.0.0.0:9323",
       "experimental" : true
     }

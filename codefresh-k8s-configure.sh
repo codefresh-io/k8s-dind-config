@@ -139,7 +139,7 @@ metadata:
 spec:
   restartPolicy: Never
   containers:
-  - image: codefresh/k8s-dind-config:${IMAGE_TAG:-master}
+  - image: codefresh/k8s-dind-config:${IMAGE_TAG:-latest}
     name: k8s-dind-config
     imagePullPolicy: Always
     command:
