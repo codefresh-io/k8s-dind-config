@@ -23,7 +23,7 @@ usage() {
   --registry-token <codefresh registry token> - default \$REGISTRY_TOKEN
   --namespace <kubernetes namespace>
   --context <kubectl context>
-  --image-tag <codefresh/k8s-dind-config image tag - default master>
+  --image-tag <codefresh/k8s-dind-config image tag - default latest>
 
   "
 }
@@ -61,7 +61,7 @@ do
       shift
       ;;
     --context)
-      KUBECTL_OPTIONS="${KUBECTL_OPTIONS} --context=$value"
+      KUBECONTEXT=$value
       shift
       ;;
     --namespace)
@@ -104,22 +104,17 @@ fi
 
 which kubectl || fatal kubectl not found
 
-echo -e "\nPrinting kubectl contexts:"
+if [[ -z "${KUBECONTEXT}" ]]; then
+  KUBECONTEXT=$(kubectl config current-context)
+fi
+
+KUBECTL_OPTIONS="$KUBECTL_OPTIONS --context ${KUBECONTEXT}"
+
+echo -e "\n--------------\n  Printing kubectl contexts:"
 kubectl config get-contexts
 
+
 KUBECTL="kubectl $KUBECTL_OPTIONS "
-
-echo "We are going to start Codefresh Configuration Pod using:
-   $KUBECTL -f <codefresh-config-pod>"
-
-if [[ -z "$FORCE" ]]; then
-    read -r -p "Would you like to continue? [Y/n]: " CONTINUE
-    CONTINUE=${CONTINUE,,} # tolower
-    if [[ ! $CONTINUE =~ ^(yes|y) ]]; then
-      echo "Exiting ..."
-      exit 0
-    fi
-fi
 
 POD_NAME=codefresh-configure-$(date '+%Y-%m-%d-%H%M%S')
 TMP_DIR=${TMPDIR:-/tmp}/codefresh
@@ -161,12 +156,27 @@ spec:
         value: "${SLEEP_ON_ERROR}"
 EOF
 
+echo -e "\n--------------\n  Printing kubectl contexts:"
+kubectl config get-contexts
 
+echo -e "\n--------------\n  Codefresh Configuration Pod:"
 cat ${POD_DEF_FILE}
+
+echo -e "\nWe are going to submit Codefresh Configuration Pod using:
+   $KUBECTL apply -f <codefresh-config-pod>"
+
+if [[ -z "$FORCE" ]]; then
+    read -r -p "Would you like to continue? [Y/n]: " CONTINUE
+    CONTINUE=${CONTINUE,,} # tolower
+    if [[ ! $CONTINUE =~ ^(yes|y) ]]; then
+      echo "Exiting ..."
+      exit 0
+    fi
+fi
 
 KUBECTL_COMMAND="$KUBECTL apply -f ${POD_DEF_FILE}"
 echo $KUBECTL_COMMAND
 
 eval $KUBECTL_COMMAND
 
-$KUBECTL get pod $POD_NAME -owide
+$KUBECTL get pod $POD_NAME -a -owide
