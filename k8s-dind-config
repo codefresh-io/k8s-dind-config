@@ -59,7 +59,7 @@ NAMESPACE=${NAMESPACE:-default}
 
 DIR=$(dirname $0)
 TMPDIR=/tmp/codefresh/
-TMP_VALIDATE_RESPONCE_FILE=$TMPDIR/validate-responce
+TMP_VALIDATE_RESPONSE_FILE=$TMPDIR/validate-response
 TMP_VALIDATE_HEADERS_FILE=$TMPDIR/validate-headers.txt
 
 TMP_CERTS_FILE_ZIP=$TMPDIR/cf-certs.zip
@@ -76,23 +76,27 @@ K8S_CERT_SECRET_NAME=codefresh-certs-server
 # docker info 2>/dev/null | awk 'BEGIN{FS=": "}/Storage Driver:/{print $2}'
 
 echo -e "\n------------------\nValidating and get values from API HOST  ... "
-echo "{\"clusterName\": \"$CLUSTER_NAME\", \"namespace\": \"$NAMESPACE\"}" > ${TMPDIR}/validate_req.json
+echo '{\"clusterName\": \"$CLUSTER_NAME\", \"namespace\": \"$NAMESPACE\"}' > ${TMPDIR}/validate_req.json
 
 VALIDATE_STATUS=$(curl -sSL -d @${TMPDIR}/validate_req.json  -H "Content-Type: application/json" -H "x-access-token: ${API_TOKEN}" \
-      -o ${TMP_VALIDATE_RESPONCE_FILE} -D ${TMP_VALIDATE_HEADERS_FILE} -w '%{http_code}' ${API_HOST}/${API_VALIDATE_PATH} )
+      -o ${TMP_VALIDATE_RESPONSE_FILE} -D ${TMP_VALIDATE_HEADERS_FILE} -w '%{http_code}' ${API_HOST}/${API_VALIDATE_PATH} )
 echo "Validate Node request completed with HTTP_STATUS_CODE=$VALIDATE_STATUS"
 if [[ $VALIDATE_STATUS != 200 ]]; then
    echo "ERROR: Node Validation failed"
-   if [[ -f ${TMP_VALIDATE_RESPONCE_FILE} ]]; then
-     mv ${TMP_VALIDATE_RESPONCE_FILE} ${TMP_VALIDATE_RESPONCE_FILE}.error
-     cat ${TMP_VALIDATE_RESPONCE_FILE}.error
+   if [[ -f ${TMP_VALIDATE_RESPONSE_FILE} ]]; then
+     mv ${TMP_VALIDATE_RESPONSE_FILE} ${TMP_VALIDATE_RESPONSE_FILE}.error
+     cat ${TMP_VALIDATE_RESPONSE_FILE}.error
    fi
    exit 1
 fi
 
-echo "Validate responce: "
-cat ${TMP_VALIDATE_RESPONCE_FILE}
-source ${TMP_VALIDATE_RESPONCE_FILE}
+echo "Validate response: "
+cat ${TMP_VALIDATE_RESPONSE_FILE}
+
+CF_REGISTRY_DOMAIN=$(cat ${TMP_VALIDATE_RESPONSE_FILE} | jq -rM .registry.domain)
+CF_REGISTRY_PROTOCOL=$(cat ${TMP_VALIDATE_RESPONSE_FILE} | jq -rM .registry.protocol)
+CF_REGISTRY_USER=$(cat ${TMP_VALIDATE_RESPONSE_FILE} | jq -rM .registry.user)
+
 
 [[ -z "$CF_REGISTRY_DOMAIN" ]] && fatal "Validation failed - cannot get CF_REGISTRY_DOMAIN"
 
@@ -146,7 +150,7 @@ for ii in $(find ${DIR}/assets -type f -name "*.yml")
 do
    echo -e "\nkubectl apply -f $ii"
    ASSET_YAML=${TMPDIR}/$(basename $ii)
-   ${DIR}/template.sh -e ${TMP_VALIDATE_RESPONCE_FILE} $ii > ${ASSET_YAML}
+   ${DIR}/template.sh -e ${TMP_VALIDATE_RESPONSE_FILE} $ii > ${ASSET_YAML}
    # cat $ASSET_YAML
    kubectl apply -f $ASSET_YAML || fatal "failed to apply $ii "
 
@@ -162,9 +166,9 @@ REGISTER_DATA=\
 
 echo "${REGISTER_DATA}" > ${TMPDIR}/register_data.json
 
-rm -f ${TMPDIR}/register.out ${TMPDIR}/register_responce_headers.out
+rm -f ${TMPDIR}/register.out ${TMPDIR}/register_response_headers.out
 REGISTER_STATUS=$(curl -sSL -d @${TMPDIR}/register_data.json -H "Content-Type: application/json" -H "x-access-token: ${API_TOKEN}" \
-    -o ${TMPDIR}/register.out -D ${TMPDIR}/register_responce_headers.out -w '%{http_code}' ${API_HOST}/${API_REGISTER_PATH} )
+    -o ${TMPDIR}/register.out -D ${TMPDIR}/register_response_headers.out -w '%{http_code}' ${API_HOST}/${API_REGISTER_PATH} )
 
 
 echo "Registration request completed with HTTP_STATUS_CODE=$REGISTER_STATUS"
