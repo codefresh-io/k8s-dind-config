@@ -76,7 +76,7 @@ K8S_CERT_SECRET_NAME=codefresh-certs-server
 # docker info 2>/dev/null | awk 'BEGIN{FS=": "}/Storage Driver:/{print $2}'
 
 echo -e "\n------------------\nValidating and get values from API HOST  ... "
-echo '{\"clusterName\": \"$CLUSTER_NAME\", \"namespace\": \"$NAMESPACE\"}' > ${TMPDIR}/validate_req.json
+echo "{\"clusterName\": \"$CLUSTER_NAME\", \"namespace\": \"$NAMESPACE\"}" > ${TMPDIR}/validate_req.json
 
 VALIDATE_STATUS=$(curl -sSL -d @${TMPDIR}/validate_req.json  -H "Content-Type: application/json" -H "x-access-token: ${API_TOKEN}" \
       -o ${TMP_VALIDATE_RESPONSE_FILE} -D ${TMP_VALIDATE_HEADERS_FILE} -w '%{http_code}' ${API_HOST}/${API_VALIDATE_PATH} )
