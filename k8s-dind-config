@@ -92,11 +92,15 @@ fi
 
 echo "Validate response: "
 cat ${TMP_VALIDATE_RESPONSE_FILE}
+echo
 
-CF_REGISTRY_DOMAIN=$(cat ${TMP_VALIDATE_RESPONSE_FILE} | jq -rM .registry.domain)
-CF_REGISTRY_PROTOCOL=$(cat ${TMP_VALIDATE_RESPONSE_FILE} | jq -rM .registry.protocol)
-CF_REGISTRY_USER=$(cat ${TMP_VALIDATE_RESPONSE_FILE} | jq -rM .registry.user)
+export CF_REGISTRY_DOMAIN=$(cat ${TMP_VALIDATE_RESPONSE_FILE} | jq -rM .registry.domain)
+export CF_REGISTRY_PROTOCOL=$(cat ${TMP_VALIDATE_RESPONSE_FILE} | jq -rM .registry.protocol)
+export CF_REGISTRY_USER=$(cat ${TMP_VALIDATE_RESPONSE_FILE} | jq -rM .registry.user)
 
+echo "CF_REGISTRY_DOMAIN=$CF_REGISTRY_DOMAIN"
+echo "CF_REGISTRY_PROTOCOL=$CF_REGISTRY_PROTOCOL"
+echo "CF_REGISTRY_USER=$CF_REGISTRY_USER"
 
 [[ -z "$CF_REGISTRY_DOMAIN" ]] && fatal "Validation failed - cannot get CF_REGISTRY_DOMAIN"
 
