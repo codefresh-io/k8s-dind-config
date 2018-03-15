@@ -9,6 +9,7 @@ Please ensure:
   - Your codefresh account enabled for CustomKubernetesCluster feature
 
 Usage:
+```sh
   ./codefresh-k8s-configure.sh [ options ] cluster_name
 
   options:
@@ -17,7 +18,7 @@ Usage:
   --namespace <kubernetes namespace>
   --context <kubectl context>
   --image-tag <codefresh/k8s-dind-config image tag - default latest>
-  
+```
   
 It will submit pod with codefresh-configure-$(date '+%Y-%m-%d-%H%M%S'):
 
@@ -53,8 +54,3 @@ spec:
       - name: CLUSTER_NAME
         value: "${CLUSTER_NAME}"
 ```
-
-≈
-  
-  
-
