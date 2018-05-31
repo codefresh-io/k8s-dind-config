@@ -5,7 +5,7 @@ Please ensure:
   - Kubernetes version is 1.6 or newer, kubectl is installed and confired to your cluster
   - You have Codefresh API Access Token - see https://g.codefresh.io/api/
   - You have Codefresh Registry Token - see https://docs.codefresh.io/v1.0/docs/codefresh-registry
-  - The cluster is registred in Codefresh - see https://docs.codefresh.io/v1.0/docs/codefresh-kubernetes-integration-beta#section-add-a-kubernetes-cluster
+  - The cluster is registred in Codefresh - see https://codefresh.io/docs/docs/deploy-to-kubernetes/adding-non-gke-kubernetes-cluster/
   - Your codefresh account enabled for CustomKubernetesCluster feature
 
 Usage:
