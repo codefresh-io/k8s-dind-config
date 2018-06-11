@@ -4,10 +4,15 @@
 echo -e "The script configures your Kubernetes cluster namespace to run codefresh.io builds \n\
 Please ensure:
   - Kubernetes version is 1.6 or newer, kubectl is installed and confired to your cluster
+  - service account of the namespace should have write permisions for services, pods, configmaps, secrets - see rbac.yaml
   - You have Codefresh API Access Token - see https://g.codefresh.io/api/
-  - You have Codefresh Registry Token - see https://docs.codefresh.io/v1.0/docs/codefresh-registry
   - The cluster is registred in Codefresh - see https://docs.codefresh.io/v1.0/docs/codefresh-kubernetes-integration-beta#section-add-a-kubernetes-cluster
   - Your codefresh account enabled for CustomKubernetesCluster feature"
+
+# Environment
+API_HOST="https://g.codefresh.io"
+DEFAULT_NAMESPACE=codefresh
+FORCE=
 
 fatal() {
    echo "ERROR: $1"
@@ -20,8 +25,7 @@ usage() {
 
   options:
   --api-token <codefresh api token> - default \$API_TOKEN
-  --registry-token <codefresh registry token> - default \$REGISTRY_TOKEN
-  --namespace <kubernetes namespace>
+  --namespace <kubernetes namespace> - default codefresh
   --context <kubectl context>
   --image-tag <codefresh/k8s-dind-config image tag - default latest>
 
@@ -32,9 +36,7 @@ usage() {
 
 set -e
 
-# Environment
-API_HOST=${API_HOST}
-FORCE=
+
 while [[ $1 =~ ^(--(api-host|api-token|registry-token|namespace|context|image-tag|force)) ]]
 do
   key=$1
@@ -65,7 +67,7 @@ do
       shift
       ;;
     --namespace)
-      KUBECTL_OPTIONS="${KUBECTL_OPTIONS} --namespace=$value"
+      NAMESPACE=$value
       shift
       ;;
     --image-tag)
@@ -91,10 +93,6 @@ if [[ -z "$FORCE" ]]; then
        read -r -p "    " API_TOKEN
     fi
 
-    if [[ -z ${REGISTRY_TOKEN} ]]; then
-       echo "Enter Codefresh Docker Registry token: (see https://docs.codefresh.io/v1.0/docs/codefresh-registry )"
-       read -r -p "    " REGISTRY_TOKEN
-    fi
 fi
 
 if [[ -z "${API_TOKEN}" || -z "${CLUSTER_NAME}" ]]; then
@@ -102,17 +100,25 @@ if [[ -z "${API_TOKEN}" || -z "${CLUSTER_NAME}" ]]; then
   exit 1
 fi
 
+
 which kubectl || fatal kubectl not found
 
 if [[ -z "${KUBECONTEXT}" ]]; then
   KUBECONTEXT=$(kubectl config current-context)
 fi
 
-KUBECTL_OPTIONS="$KUBECTL_OPTIONS --context ${KUBECONTEXT}"
+## Checking if namespace exists
+if [[ -z "${NAMESPACE}" ]]; then
+  NAMESPACE="${DEFAULT_NAMESPACE}"
+fi
+if ! kubectl --context ${KUBECONTEXT} get namespace ${NAMESPACE} >&- ; then
+  fatal namespace ${NAMESPACE} does not exist
+fi
+
+KUBECTL_OPTIONS="$KUBECTL_OPTIONS --context ${KUBECONTEXT} --namespace=${NAMESPACE}"
 
 echo -e "\n--------------\n  Printing kubectl contexts:"
 kubectl config get-contexts
-
 
 KUBECTL="kubectl $KUBECTL_OPTIONS "
 

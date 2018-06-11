@@ -1,0 +1,29 @@
+## Role and RoleBinding for launch k8s-dind-confing in codefresh namespace
+##   Change namespace if you plan to run it in different namespace
+## usage:
+##    kubectl apply -f rbac.yaml
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: codefresh-dind
+  namespace: codefresh
+rules:
+- apiGroups: [""]
+  resources: ["services","pods","configmaps","secrets"]
+  verbs: ["get", "list","watch", "create","update", "patch","delete"]
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: codefresh-dind-binding
+  namespace: codefresh
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: codefresh
+roleRef:
+  kind: Role
+  name: codefresh-dind
+  apiGroup: rbac.authorization.k8s.io

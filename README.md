@@ -3,10 +3,16 @@
 The script configures your Kubernetes cluster namespace to run codefresh.io builds 
 Please ensure:
   - Kubernetes version is 1.6 or newer, kubectl is installed and confired to your cluster
+  - For RBAC enabled clusters service-account of the namespace should have write permisions for "services","pods","configmaps","secrets" - see rbac.yaml
   - You have Codefresh API Access Token - see https://g.codefresh.io/api/
-  - You have Codefresh Registry Token - see https://docs.codefresh.io/v1.0/docs/codefresh-registry
   - The cluster is registred in Codefresh - see https://codefresh.io/docs/docs/deploy-to-kubernetes/adding-non-gke-kubernetes-cluster/
-  - Your codefresh account enabled for CustomKubernetesCluster feature
+  - You
+  
+Simplest way to create codefresh namespace with required permissions:
+```
+kubectl create namespace codefresh
+kubectl apply -f rbac.yaml
+```
 
 Usage:
 ```sh
@@ -14,8 +20,7 @@ Usage:
 
   options:
   --api-token <codefresh api token> - default $API_TOKEN
-  --registry-token <codefresh registry token> - default $REGISTRY_TOKEN
-  --namespace <kubernetes namespace>
+  --namespace <kubernetes namespace> - default codefresh
   --context <kubectl context>
   --image-tag <codefresh/k8s-dind-config image tag - default latest>
 ```
