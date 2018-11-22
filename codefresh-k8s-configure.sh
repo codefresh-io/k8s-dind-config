@@ -107,6 +107,12 @@ if [[ -z "${KUBECONTEXT}" ]]; then
   KUBECONTEXT=$(kubectl config current-context)
 fi
 
+echo -e "\n--------------\n  Create codefresh namespace:"
+kubectl create namespace codefresh
+
+echo -e "\n--------------\n  Set required permissions:"
+kubectl apply -f rbac.yaml
+
 ## Checking if namespace exists
 if [[ -z "${NAMESPACE}" ]]; then
   NAMESPACE="${DEFAULT_NAMESPACE}"
@@ -164,12 +170,6 @@ EOF
 
 echo -e "\n--------------\n  Printing kubectl contexts:"
 kubectl config get-contexts
-
-echo -e "\n--------------\n  Create codefresh namespace:"
-kubectl create namespace codefresh
-
-echo -e "\n--------------\n  Set required permissions:"
-kubectl apply -f rbac.yaml
 
 echo -e "\n--------------\n  Codefresh Configuration Pod:"
 cat ${POD_DEF_FILE}
