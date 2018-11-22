@@ -78,7 +78,7 @@ K8S_CERT_SECRET_NAME=codefresh-certs-server
 echo -e "\n------------------\nValidating and get values from API HOST  ... "
 echo "{\"clusterName\": \"$CLUSTER_NAME\", \"namespace\": \"$NAMESPACE\"}" > ${TMPDIR}/validate_req.json
 
-VALIDATE_STATUS=$(curl -sSL -d @${TMPDIR}/validate_req.json  -H "Content-Type: application/json" -H "x-access-token: ${API_TOKEN}" \
+VALIDATE_STATUS=$(curl -sSL -d @${TMPDIR}/validate_req.json  -H "Content-Type: application/json" -H "authorization: ${API_TOKEN}" \
       -o ${TMP_VALIDATE_RESPONSE_FILE} -D ${TMP_VALIDATE_HEADERS_FILE} -w '%{http_code}' ${API_HOST}/${API_VALIDATE_PATH} )
 echo "Validate Node request completed with HTTP_STATUS_CODE=$VALIDATE_STATUS"
 if [[ $VALIDATE_STATUS != 200 ]]; then
@@ -123,7 +123,7 @@ SERVER_CERT_CN=${SERVER_CERT_CN:-"docker.codefresh.io"}
   echo "{\"reqSubjectAltName\": \"${SERVER_CERT_SANS}\", \"csr\": \"${CSR}\" }" > ${TMPDIR}/sign_req.json
 
   rm -fv ${TMP_CERTS_HEADERS_FILE} ${TMP_CERTS_FILE_ZIP}
-  SIGN_STATUS=$(curl -sSL -d @${TMPDIR}/sign_req.json -H "Content-Type: application/json" -H "x-access-token: ${API_TOKEN}" -H "Expect: " \
+  SIGN_STATUS=$(curl -sSL -d @${TMPDIR}/sign_req.json -H "Content-Type: application/json" -H "authorization: ${API_TOKEN}" -H "Expect: " \
         -o ${TMP_CERTS_FILE_ZIP} -D ${TMP_CERTS_HEADERS_FILE} -w '%{http_code}' ${API_HOST}/${API_SIGN_PATH} )
 
   echo "Sign request completed with HTTP_STATUS_CODE=$SIGN_STATUS"
@@ -171,7 +171,7 @@ REGISTER_DATA=\
 echo "${REGISTER_DATA}" > ${TMPDIR}/register_data.json
 
 rm -f ${TMPDIR}/register.out ${TMPDIR}/register_response_headers.out
-REGISTER_STATUS=$(curl -sSL -d @${TMPDIR}/register_data.json -H "Content-Type: application/json" -H "x-access-token: ${API_TOKEN}" \
+REGISTER_STATUS=$(curl -sSL -d @${TMPDIR}/register_data.json -H "Content-Type: application/json" -H "authorization: ${API_TOKEN}" \
     -o ${TMPDIR}/register.out -D ${TMPDIR}/register_response_headers.out -w '%{http_code}' ${API_HOST}/${API_REGISTER_PATH} )
 
 
