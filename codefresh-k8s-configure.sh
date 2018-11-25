@@ -13,6 +13,7 @@ Please ensure:
 API_HOST="https://g.codefresh.io"
 DEFAULT_NAMESPACE=codefresh
 FORCE=
+REMOTE=
 
 fatal() {
    echo "ERROR: $1"
@@ -28,7 +29,7 @@ usage() {
   --namespace <kubernetes namespace> - default codefresh
   --context <kubectl context>
   --image-tag <codefresh/k8s-dind-config image tag - default latest>
-
+  --remote <set if we want to download the files from git repository - default false>
   "
 }
 
@@ -37,6 +38,7 @@ usage() {
 set -e
 
 DIR=$(dirname $0)
+REPO_URL="https://api.github.com/codefresh-io/k8s-dind-config"
 
 while [[ $1 =~ ^(--(api-host|api-token|registry-token|namespace|context|image-tag|force)) ]]
 do
@@ -50,6 +52,9 @@ do
       ;;
     --force)
       FORCE="true"
+      ;;
+    --remote)
+      REMOTE="true"
       ;;
     --api-host)
       API_HOST=$value
@@ -101,6 +106,16 @@ if [[ -z "${API_TOKEN}" || -z "${CLUSTER_NAME}" ]]; then
   exit 1
 fi
 
+if [[ "${REMOTE}" ]]; then
+  curl ${REPO_URL}/pod.yaml.tmpl > ${DIR}/pod.yaml.tmpl
+  curl ${REPO_URL}/rbac.yaml > ${DIR}/rbac.yaml
+  curl ${REPO_URL}/template.sh > ${DIR}/template.sh
+fi
+
+POD_TEMPLATE_FILE=${DIR}/pod.yaml.tmpl
+RBAC_FILE=${DIR}/rbac.yaml
+TEMPLATE_FILE=${DIR}/template.sh
+
 
 which kubectl || fatal kubectl not found
 
@@ -127,9 +142,8 @@ TMP_DIR=${TMPDIR:-/tmp}/codefresh
 mkdir -p "${TMP_DIR}"
 POD_DEF_FILE=${TMP_DIR}/${POD_NAME}-pod.yaml
 
-POD_TEMPLATE_FILE=${DIR}/pod.yaml.tmpl
 IMAGE_TAG=${IMAGE_TAG:-latest} API_HOST=${API_HOST} API_TOKEN=${API_TOKEN} CLUSTER_NAME=${CLUSTER_NAME} \
-${DIR}/template.sh ${POD_TEMPLATE_FILE} > ${POD_DEF_FILE}
+${TEMPLATE_FILE} ${POD_TEMPLATE_FILE} > ${POD_DEF_FILE}
 
 echo -e "\n--------------\n  Printing kubectl contexts:"
 kubectl config get-contexts
@@ -155,7 +169,7 @@ if ! kubectl --context ${KUBECONTEXT} get namespace ${NAMESPACE} >&- ; then
 fi
 
 echo -e "\n--------------\n  Set required permissions:"
-$KUBECTL apply -f "${DIR}"/rbac.yaml
+$KUBECTL apply -f ${RBAC_FILE}
 
 KUBECTL_COMMAND="$KUBECTL apply -f ${POD_DEF_FILE}"
 echo $KUBECTL_COMMAND
