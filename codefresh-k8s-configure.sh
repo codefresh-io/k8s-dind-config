@@ -36,6 +36,7 @@ usage() {
 
 set -e
 
+DIR=$(dirname $0)
 
 while [[ $1 =~ ^(--(api-host|api-token|registry-token|namespace|context|image-tag|force)) ]]
 do
@@ -107,19 +108,11 @@ if [[ -z "${KUBECONTEXT}" ]]; then
   KUBECONTEXT=$(kubectl config current-context)
 fi
 
-echo -e "\n--------------\n  Create codefresh namespace:"
-kubectl create namespace codefresh
-
-echo -e "\n--------------\n  Set required permissions:"
-kubectl apply -f rbac.yaml
-
 ## Checking if namespace exists
 if [[ -z "${NAMESPACE}" ]]; then
   NAMESPACE="${DEFAULT_NAMESPACE}"
 fi
-if ! kubectl --context ${KUBECONTEXT} get namespace ${NAMESPACE} >&- ; then
-  fatal namespace ${NAMESPACE} does not exist
-fi
+
 
 KUBECTL_OPTIONS="$KUBECTL_OPTIONS --context ${KUBECONTEXT} --namespace=${NAMESPACE}"
 
@@ -128,45 +121,15 @@ kubectl config get-contexts
 
 KUBECTL="kubectl $KUBECTL_OPTIONS "
 
+
 POD_NAME=codefresh-configure-$(date '+%Y-%m-%d-%H%M%S')
 TMP_DIR=${TMPDIR:-/tmp}/codefresh
 mkdir -p "${TMP_DIR}"
 POD_DEF_FILE=${TMP_DIR}/${POD_NAME}-pod.yaml
 
-cat <<EOF >${POD_DEF_FILE}
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: ${POD_NAME}
-  annotations:
-    forceRedeployUniqId: "N/A"
-  labels:
-    app: codefresh-config
-spec:
-  restartPolicy: Never
-  containers:
-  - image: codefresh/k8s-dind-config:${IMAGE_TAG:-latest}
-    name: k8s-dind-config
-    imagePullPolicy: Always
-    command:
-      - "/app/k8s-dind-config"
-    env:
-      - name: NAMESPACE
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.namespace
-      - name: API_HOST
-        value: "${API_HOST}"
-      - name: API_TOKEN
-        value: "${API_TOKEN}"
-      - name: REGISTRY_TOKEN
-        value: "${REGISTRY_TOKEN}"
-      - name: CLUSTER_NAME
-        value: "${CLUSTER_NAME}"
-      - name: SLEEP_ON_ERROR
-        value: "${SLEEP_ON_ERROR}"
-EOF
+POD_TEMPLATE_FILE=${DIR}/pod.yaml.tmpl
+IMAGE_TAG=${IMAGE_TAG:-latest} API_HOST=${API_HOST} API_TOKEN=${API_TOKEN} CLUSTER_NAME=${CLUSTER_NAME} \
+${DIR}/template.sh ${POD_TEMPLATE_FILE} > ${POD_DEF_FILE}
 
 echo -e "\n--------------\n  Printing kubectl contexts:"
 kubectl config get-contexts
@@ -185,6 +148,14 @@ if [[ -z "$FORCE" ]]; then
       exit 0
     fi
 fi
+
+if ! kubectl --context ${KUBECONTEXT} get namespace ${NAMESPACE} >&- ; then
+  echo -e "\n--------------\n  Create namespace:"
+  kubectl --context ${KUBECONTEXT} create namespace ${NAMESPACE}
+fi
+
+echo -e "\n--------------\n  Set required permissions:"
+$KUBECTL apply -f "${DIR}"/rbac.yaml
 
 KUBECTL_COMMAND="$KUBECTL apply -f ${POD_DEF_FILE}"
 echo $KUBECTL_COMMAND
