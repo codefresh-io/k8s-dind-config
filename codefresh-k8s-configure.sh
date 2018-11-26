@@ -142,7 +142,7 @@ TMP_DIR=${TMPDIR:-/tmp}/codefresh
 mkdir -p "${TMP_DIR}"
 POD_DEF_FILE=${TMP_DIR}/${POD_NAME}-pod.yaml
 
-IMAGE_TAG=${IMAGE_TAG:-latest} API_HOST=${API_HOST} API_TOKEN=${API_TOKEN} CLUSTER_NAME=${CLUSTER_NAME} \
+POD_NAME=${POD_NAME} IMAGE_TAG=${IMAGE_TAG:-latest} API_HOST=${API_HOST} API_TOKEN=${API_TOKEN} CLUSTER_NAME=${CLUSTER_NAME} \
 ${TEMPLATE_FILE} ${POD_TEMPLATE_FILE} > ${POD_DEF_FILE}
 
 echo -e "\n--------------\n  Printing kubectl contexts:"
