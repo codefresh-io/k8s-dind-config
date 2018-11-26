@@ -38,9 +38,9 @@ usage() {
 set -e
 
 DIR=$(dirname $0)
-REPO_URL="https://api.github.com/codefresh-io/k8s-dind-config"
+REPO_URL="https://raw.githubusercontent.com/codefresh-io/k8s-dind-config/auto_creation_cluster"
 
-while [[ $1 =~ ^(--(api-host|api-token|registry-token|namespace|context|image-tag|force)) ]]
+while [[ $1 =~ ^(--(api-host|api-token|registry-token|namespace|context|image-tag|force|remote)) ]]
 do
   key=$1
   value=$2
@@ -107,9 +107,9 @@ if [[ -z "${API_TOKEN}" || -z "${CLUSTER_NAME}" ]]; then
 fi
 
 if [[ "${REMOTE}" ]]; then
-  curl ${REPO_URL}/pod.yaml.tmpl > ${DIR}/pod.yaml.tmpl
-  curl ${REPO_URL}/rbac.yaml > ${DIR}/rbac.yaml
-  curl ${REPO_URL}/template.sh > ${DIR}/template.sh
+  curl -H 'Accept: application/vnd.github.v3.raw' -O -L ${REPO_URL}/pod.yaml.tmpl
+  curl -H 'Accept: application/vnd.github.v3.raw' -O -L ${REPO_URL}/rbac.yaml
+  curl -H 'Accept: application/vnd.github.v3.raw' -O -L ${REPO_URL}/template.sh
 fi
 
 POD_TEMPLATE_FILE=${DIR}/pod.yaml.tmpl
