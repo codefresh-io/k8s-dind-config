@@ -13,7 +13,7 @@ Please ensure:
 API_HOST="https://g.codefresh.io"
 DEFAULT_NAMESPACE=codefresh
 FORCE=
-REMOTE=
+LOCAL=
 
 fatal() {
    echo "ERROR: $1"
@@ -29,7 +29,7 @@ usage() {
   --namespace <kubernetes namespace> - default codefresh
   --context <kubectl context>
   --image-tag <codefresh/k8s-dind-config image tag - default latest>
-  --remote <set if we want to download the files from git repository - default false>
+  --local <set if run the script from local file system - default false>
   "
 }
 
@@ -40,7 +40,7 @@ set -e
 DIR=$(dirname $0)
 REPO_URL="https://raw.githubusercontent.com/codefresh-io/k8s-dind-config/auto_creation_cluster"
 
-while [[ $1 =~ ^(--(api-host|api-token|registry-token|namespace|context|image-tag|force|remote)) ]]
+while [[ $1 =~ ^(--(api-host|api-token|registry-token|namespace|context|image-tag|force|local)) ]]
 do
   key=$1
   value=$2
@@ -53,8 +53,8 @@ do
     --force)
       FORCE="true"
       ;;
-    --remote)
-      REMOTE="true"
+    --local)
+      LOCAL="true"
       ;;
     --api-host)
       API_HOST=$value
@@ -106,7 +106,7 @@ if [[ -z "${API_TOKEN}" || -z "${CLUSTER_NAME}" ]]; then
   exit 1
 fi
 
-if [[ "${REMOTE}" ]]; then
+if [[ -n "$LOCAL" ]]; then
   curl -H 'Accept: application/vnd.github.v3.raw' -O -L ${REPO_URL}/pod.yaml.tmpl
   curl -H 'Accept: application/vnd.github.v3.raw' -O -L ${REPO_URL}/rbac.yaml
   curl -H 'Accept: application/vnd.github.v3.raw' -O -L ${REPO_URL}/template.sh
