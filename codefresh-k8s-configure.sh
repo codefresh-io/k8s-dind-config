@@ -107,9 +107,9 @@ if [[ -z "${API_TOKEN}" || -z "${CLUSTER_NAME}" ]]; then
 fi
 
 if [[ -z "$LOCAL" ]]; then
-  curl -H 'Accept: application/vnd.github.v3.raw' -O -L ${REPO_URL}/pod.yaml.tmpl
-  curl -H 'Accept: application/vnd.github.v3.raw' -O -L ${REPO_URL}/rbac.yaml
-  curl -H 'Accept: application/vnd.github.v3.raw' -O -L ${REPO_URL}/template.sh
+  curl -H 'Accept: application/vnd.github.v3.raw' -o ${DIR}/pod.yaml.tmpl -L ${REPO_URL}/pod.yaml.tmpl
+  curl -H 'Accept: application/vnd.github.v3.raw' -o ${DIR}/rbac.yaml -L ${REPO_URL}/rbac.yaml
+  curl -H 'Accept: application/vnd.github.v3.raw' -o ${DIR}/template.sh-L ${REPO_URL}/template.sh
 fi
 
 POD_TEMPLATE_FILE=${DIR}/pod.yaml.tmpl
