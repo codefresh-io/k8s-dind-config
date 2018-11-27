@@ -116,6 +116,7 @@ POD_TEMPLATE_FILE=${DIR}/pod.yaml.tmpl
 RBAC_FILE=${DIR}/rbac.yaml
 TEMPLATE_FILE=${DIR}/template.sh
 
+chmod 755 ${TEMPLATE_FILE}
 
 which kubectl || fatal kubectl not found
 
