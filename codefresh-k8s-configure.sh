@@ -29,7 +29,7 @@ usage() {
   --namespace <kubernetes namespace> - default codefresh
   --context <kubectl context>
   --image-tag <codefresh/k8s-dind-config image tag - default latest>
-  --local <set if run the script from local file system - default false>
+  --remote <set if run the script from github repo - default false>
   "
 }
 
@@ -40,7 +40,7 @@ set -e
 DIR=$(dirname $0)
 REPO_URL="https://raw.githubusercontent.com/codefresh-io/k8s-dind-config/auto_creation_cluster"
 
-while [[ $1 =~ ^(--(api-host|api-token|registry-token|namespace|context|image-tag|force|local)) ]]
+while [[ $1 =~ ^(--(api-host|api-token|registry-token|namespace|context|image-tag|force|remote)) ]]
 do
   key=$1
   value=$2
