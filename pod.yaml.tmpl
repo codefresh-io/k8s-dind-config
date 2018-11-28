@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{POD_NAME}}
+  annotations:
+    forceRedeployUniqId: "N/A"
+  labels:
+    app: codefresh-config
+spec:
+  restartPolicy: Never
+  containers:
+  - image: codefresh/k8s-dind-config:{{IMAGE_TAG}}
+    name: k8s-dind-config
+    imagePullPolicy: Always
+    command:
+      - "/app/k8s-dind-config"
+    env:
+      - name: NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      - name: API_HOST
+        value: "{{API_HOST}}"
+      - name: API_TOKEN
+        value: "{{API_TOKEN}}"
+      - name: REGISTRY_TOKEN
+        value: "{{REGISTRY_TOKEN}}"
+      - name: CLUSTER_NAME
+        value: "{{CLUSTER_NAME}}"
+      - name: SLEEP_ON_ERROR
+        value: "{{SLEEP_ON_ERROR}}"
+

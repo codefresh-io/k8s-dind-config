@@ -13,6 +13,7 @@ Please ensure:
 API_HOST="https://g.codefresh.io"
 DEFAULT_NAMESPACE=codefresh
 FORCE=
+LOCAL="true"
 
 fatal() {
    echo "ERROR: $1"
@@ -28,7 +29,7 @@ usage() {
   --namespace <kubernetes namespace> - default codefresh
   --context <kubectl context>
   --image-tag <codefresh/k8s-dind-config image tag - default latest>
-
+  --remote <set if run the script from github repo - default false>
   "
 }
 
@@ -36,8 +37,10 @@ usage() {
 
 set -e
 
+DIR=$(dirname $0)
+REPO_URL="https://raw.githubusercontent.com/codefresh-io/k8s-dind-config/auto_creation_cluster"
 
-while [[ $1 =~ ^(--(api-host|api-token|registry-token|namespace|context|image-tag|force)) ]]
+while [[ $1 =~ ^(--(api-host|api-token|registry-token|namespace|context|image-tag|force|remote)) ]]
 do
   key=$1
   value=$2
@@ -49,6 +52,9 @@ do
       ;;
     --force)
       FORCE="true"
+      ;;
+    --remote)
+      LOCAL=
       ;;
     --api-host)
       API_HOST=$value
@@ -100,6 +106,17 @@ if [[ -z "${API_TOKEN}" || -z "${CLUSTER_NAME}" ]]; then
   exit 1
 fi
 
+if [[ -z "$LOCAL" ]]; then
+  curl -H 'Accept: application/vnd.github.v3.raw' -o ${DIR}/pod.yaml.tmpl -L ${REPO_URL}/pod.yaml.tmpl
+  curl -H 'Accept: application/vnd.github.v3.raw' -o ${DIR}/rbac.yaml -L ${REPO_URL}/rbac.yaml
+  curl -H 'Accept: application/vnd.github.v3.raw' -o ${DIR}/template.sh -L ${REPO_URL}/template.sh
+fi
+
+POD_TEMPLATE_FILE=${DIR}/pod.yaml.tmpl
+RBAC_FILE=${DIR}/rbac.yaml
+TEMPLATE_EXEC=${DIR}/template.sh
+
+chmod 755 ${TEMPLATE_EXEC}
 
 which kubectl || fatal kubectl not found
 
@@ -111,9 +128,7 @@ fi
 if [[ -z "${NAMESPACE}" ]]; then
   NAMESPACE="${DEFAULT_NAMESPACE}"
 fi
-if ! kubectl --context ${KUBECONTEXT} get namespace ${NAMESPACE} >&- ; then
-  fatal namespace ${NAMESPACE} does not exist
-fi
+
 
 KUBECTL_OPTIONS="$KUBECTL_OPTIONS --context ${KUBECONTEXT} --namespace=${NAMESPACE}"
 
@@ -122,45 +137,14 @@ kubectl config get-contexts
 
 KUBECTL="kubectl $KUBECTL_OPTIONS "
 
+
 POD_NAME=codefresh-configure-$(date '+%Y-%m-%d-%H%M%S')
 TMP_DIR=${TMPDIR:-/tmp}/codefresh
 mkdir -p "${TMP_DIR}"
 POD_DEF_FILE=${TMP_DIR}/${POD_NAME}-pod.yaml
 
-cat <<EOF >${POD_DEF_FILE}
----
-apiVersion: v1
-kind: Pod
-metadata:
-  name: ${POD_NAME}
-  annotations:
-    forceRedeployUniqId: "N/A"
-  labels:
-    app: codefresh-config
-spec:
-  restartPolicy: Never
-  containers:
-  - image: codefresh/k8s-dind-config:${IMAGE_TAG:-latest}
-    name: k8s-dind-config
-    imagePullPolicy: Always
-    command:
-      - "/app/k8s-dind-config"
-    env:
-      - name: NAMESPACE
-        valueFrom:
-          fieldRef:
-            fieldPath: metadata.namespace
-      - name: API_HOST
-        value: "${API_HOST}"
-      - name: API_TOKEN
-        value: "${API_TOKEN}"
-      - name: REGISTRY_TOKEN
-        value: "${REGISTRY_TOKEN}"
-      - name: CLUSTER_NAME
-        value: "${CLUSTER_NAME}"
-      - name: SLEEP_ON_ERROR
-        value: "${SLEEP_ON_ERROR}"
-EOF
+POD_NAME=${POD_NAME} IMAGE_TAG=${IMAGE_TAG:-latest} API_HOST=${API_HOST} API_TOKEN=${API_TOKEN} CLUSTER_NAME=${CLUSTER_NAME} \
+${TEMPLATE_EXEC} ${POD_TEMPLATE_FILE} > ${POD_DEF_FILE}
 
 echo -e "\n--------------\n  Printing kubectl contexts:"
 kubectl config get-contexts
@@ -172,12 +156,23 @@ echo -e "\nWe are going to submit Codefresh Configuration Pod using:
    $KUBECTL apply -f <codefresh-config-pod>"
 
 if [[ -z "$FORCE" ]]; then
+    echo -e "Would you like to continue? [Y/n]:"
     read -r -p "Would you like to continue? [Y/n]: " CONTINUE
     CONTINUE=${CONTINUE,,} # tolower
     if [[ ! $CONTINUE =~ ^(yes|y) ]]; then
       echo "Exiting ..."
       exit 0
     fi
+fi
+
+if ! kubectl --context ${KUBECONTEXT} get namespace ${NAMESPACE} >&- ; then
+  echo -e "\n--------------\n  Create namespace:"
+  kubectl --context ${KUBECONTEXT} create namespace ${NAMESPACE}
+fi
+
+if kubectl --context ${KUBECONTEXT} api-versions | grep rbac.authorization.k8s.io >&-; then
+    echo -e "\n--------------\n Set required permissions:"
+    $KUBECTL apply -f ${RBAC_FILE}
 fi
 
 KUBECTL_COMMAND="$KUBECTL apply -f ${POD_DEF_FILE}"

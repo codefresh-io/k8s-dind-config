@@ -7,7 +7,6 @@ kind: Role
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: codefresh-dind
-  namespace: codefresh
 rules:
 - apiGroups: [""]
   resources: ["services","pods","configmaps","secrets"]
@@ -18,11 +17,9 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: codefresh-dind-binding
-  namespace: codefresh
 subjects:
 - kind: ServiceAccount
   name: default
-  namespace: codefresh
 roleRef:
   kind: Role
   name: codefresh-dind
