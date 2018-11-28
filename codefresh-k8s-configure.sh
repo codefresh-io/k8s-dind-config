@@ -156,6 +156,7 @@ echo -e "\nWe are going to submit Codefresh Configuration Pod using:
    $KUBECTL apply -f <codefresh-config-pod>"
 
 if [[ -z "$FORCE" ]]; then
+    echo -e "Would you like to continue? [Y/n]:"
     read -r -p "Would you like to continue? [Y/n]: " CONTINUE
     CONTINUE=${CONTINUE,,} # tolower
     if [[ ! $CONTINUE =~ ^(yes|y) ]]; then
@@ -169,8 +170,8 @@ if ! kubectl --context ${KUBECONTEXT} get namespace ${NAMESPACE} >&- ; then
   kubectl --context ${KUBECONTEXT} create namespace ${NAMESPACE}
 fi
 
-if ! $KUBECTL api-versions | grep rbac.authorization.k8s.io; then
-    echo -e "\n--------------\n  Set required permissions:"
+if kubectl --context ${KUBECONTEXT} api-versions | grep rbac.authorization.k8s.io >&-; then
+    echo -e "\n--------------\n Set required permissions:"
     $KUBECTL apply -f ${RBAC_FILE}
 fi
 
