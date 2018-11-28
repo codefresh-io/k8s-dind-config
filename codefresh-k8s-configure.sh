@@ -13,7 +13,7 @@ Please ensure:
 API_HOST="https://g.codefresh.io"
 DEFAULT_NAMESPACE=codefresh
 FORCE=
-LOCAL=
+LOCAL="true"
 
 fatal() {
    echo "ERROR: $1"
@@ -53,8 +53,8 @@ do
     --force)
       FORCE="true"
       ;;
-    --local)
-      LOCAL="true"
+    --remote)
+      LOCAL=
       ;;
     --api-host)
       API_HOST=$value
@@ -114,9 +114,9 @@ fi
 
 POD_TEMPLATE_FILE=${DIR}/pod.yaml.tmpl
 RBAC_FILE=${DIR}/rbac.yaml
-TEMPLATE_FILE=${DIR}/template.sh
+TEMPLATE_EXEC=${DIR}/template.sh
 
-chmod 755 ${TEMPLATE_FILE}
+chmod 755 ${TEMPLATE_EXEC}
 
 which kubectl || fatal kubectl not found
 
@@ -144,7 +144,7 @@ mkdir -p "${TMP_DIR}"
 POD_DEF_FILE=${TMP_DIR}/${POD_NAME}-pod.yaml
 
 POD_NAME=${POD_NAME} IMAGE_TAG=${IMAGE_TAG:-latest} API_HOST=${API_HOST} API_TOKEN=${API_TOKEN} CLUSTER_NAME=${CLUSTER_NAME} \
-${TEMPLATE_FILE} ${POD_TEMPLATE_FILE} > ${POD_DEF_FILE}
+${TEMPLATE_EXEC} ${POD_TEMPLATE_FILE} > ${POD_DEF_FILE}
 
 echo -e "\n--------------\n  Printing kubectl contexts:"
 kubectl config get-contexts
@@ -169,8 +169,10 @@ if ! kubectl --context ${KUBECONTEXT} get namespace ${NAMESPACE} >&- ; then
   kubectl --context ${KUBECONTEXT} create namespace ${NAMESPACE}
 fi
 
-echo -e "\n--------------\n  Set required permissions:"
-$KUBECTL apply -f ${RBAC_FILE}
+if ! $KUBECTL api-versions | grep rbac.authorization.k8s.io; then
+    echo -e "\n--------------\n  Set required permissions:"
+    $KUBECTL apply -f ${RBAC_FILE}
+fi
 
 KUBECTL_COMMAND="$KUBECTL apply -f ${POD_DEF_FILE}"
 echo $KUBECTL_COMMAND
