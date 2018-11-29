@@ -6,7 +6,7 @@ Please ensure:
   - Kubernetes version is 1.6 or newer, kubectl is installed and confired to your cluster
   - service account of the namespace should have write permisions for services, pods, configmaps, secrets - see rbac.yaml
   - You have Codefresh API Access Token - see https://g.codefresh.io/api/
-  - The cluster is registred in Codefresh - see https://docs.codefresh.io/v1.0/docs/codefresh-kubernetes-integration-beta#section-add-a-kubernetes-cluster
+  - The cluster is registred in Codefresh - see https://docs.codefresh.io/v1.0/docs/codefresh-kubernetes-integration-beta#section-add-a-kubernetes-cluster"
 
 # Environment
 API_HOST="https://g.codefresh.io"
