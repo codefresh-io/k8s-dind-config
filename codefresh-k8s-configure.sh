@@ -7,7 +7,6 @@ Please ensure:
   - service account of the namespace should have write permisions for services, pods, configmaps, secrets - see rbac.yaml
   - You have Codefresh API Access Token - see https://g.codefresh.io/api/
   - The cluster is registred in Codefresh - see https://docs.codefresh.io/v1.0/docs/codefresh-kubernetes-integration-beta#section-add-a-kubernetes-cluster
-  - Your codefresh account enabled for CustomKubernetesCluster feature"
 
 # Environment
 API_HOST="https://g.codefresh.io"
