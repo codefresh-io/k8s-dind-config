@@ -38,7 +38,7 @@ usage() {
 set -e
 
 DIR=$(dirname $0)
-REPO_URL="https://raw.githubusercontent.com/codefresh-io/k8s-dind-config/auto_creation_cluster"
+REPO_URL="https://raw.githubusercontent.com/codefresh-io/k8s-dind-config/master"
 
 while [[ $1 =~ ^(--(api-host|api-token|registry-token|namespace|context|image-tag|force|remote)) ]]
 do
