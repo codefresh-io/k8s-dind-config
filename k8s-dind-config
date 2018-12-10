@@ -48,6 +48,13 @@ done
 API_VALIDATE_PATH=${SIGN_VALIDATE_PATH:-"api/custom_clusters/validate"}
 API_SIGN_PATH=${API_SIGN_PATH:-"api/custom_clusters/signServerCerts"}
 API_REGISTER_PATH=${API_REGISTER_PATH:-"api/custom_clusters/register"}
+
+if ! [[ -z "AGENT" ]]
+    API_REGISTER_PATH=${API_REGISTER_PATH}/?agent=true
+fi
+
+echo "$API_REGISTER_PATH"
+
 API_TOKEN=${API_TOKEN}
 SERVER_CERT_CN="${SERVER_CERT_CN}"
 SERVER_CERT_EXTRA_SANS="${SERVER_CERT_EXTRA_SANS}"

@@ -29,6 +29,8 @@ usage() {
   --namespace <kubernetes namespace> - default codefresh
   --context <kubectl context>
   --image-tag <codefresh/k8s-dind-config image tag - default latest>
+  --cluster-provider <set your cluster provider>
+  --agent <set if your hybrid runtime environment will be configure to agent - default false>
   --remote <set if run the script from github repo - default false>
   "
 }
@@ -40,7 +42,7 @@ set -e
 DIR=$(dirname $0)
 REPO_URL="https://raw.githubusercontent.com/codefresh-io/k8s-dind-config/master"
 
-while [[ $1 =~ ^(--(api-host|api-token|registry-token|namespace|context|image-tag|force|remote)) ]]
+while [[ $1 =~ ^(--(api-host|api-token|registry-token|namespace|context|image-tag|force|remote|cluster-provider|agent)) ]]
 do
   key=$1
   value=$2
@@ -78,6 +80,14 @@ do
       ;;
     --image-tag)
       IMAGE_TAG="$value"
+      shift
+      ;;
+    --cluster-provider)
+      CLUSTER_PROVIDER="$value"
+      shift
+      ;;
+    --agent)
+      AGENT="$value"
       shift
       ;;
   esac
@@ -143,7 +153,7 @@ TMP_DIR=${TMPDIR:-/tmp}/codefresh
 mkdir -p "${TMP_DIR}"
 POD_DEF_FILE=${TMP_DIR}/${POD_NAME}-pod.yaml
 
-POD_NAME=${POD_NAME} IMAGE_TAG=${IMAGE_TAG:-latest} API_HOST=${API_HOST} API_TOKEN=${API_TOKEN} CLUSTER_NAME=${CLUSTER_NAME} \
+AGENT=${AGENT} POD_NAME=${POD_NAME} IMAGE_TAG=${IMAGE_TAG:-latest} API_HOST=${API_HOST} API_TOKEN=${API_TOKEN} CLUSTER_NAME=${CLUSTER_NAME} \
 ${TEMPLATE_EXEC} ${POD_TEMPLATE_FILE} > ${POD_DEF_FILE}
 
 echo -e "\n--------------\n  Printing kubectl contexts:"
@@ -168,6 +178,14 @@ fi
 if ! kubectl --context ${KUBECONTEXT} get namespace ${NAMESPACE} >&- ; then
   echo -e "\n--------------\n  Create namespace:"
   kubectl --context ${KUBECONTEXT} create namespace ${NAMESPACE}
+fi
+
+
+if  [[ "$CLUSTER_PROVIDER" = "gcloud" ]] >&- ; then
+  if kubectl auth can-i create clusterrolebinding >&- ; then
+    echo -e "\n--------------\n  Create cluster role binding:"
+    kubectl --context ${KUBECONTEXT} create clusterrolebinding cluster-admin-binding-codefresh   --clusterrole cluster-admin --user $(gcloud config get-value account)
+  fi
 fi
 
 if kubectl --context ${KUBECONTEXT} api-versions | grep rbac.authorization.k8s.io >&-; then
