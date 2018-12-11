@@ -12,6 +12,7 @@ Please ensure:
 API_HOST="https://g.codefresh.io"
 DEFAULT_NAMESPACE=codefresh
 FORCE=
+GCLOUD=
 LOCAL="true"
 
 fatal() {
@@ -29,6 +30,7 @@ usage() {
   --context <kubectl context>
   --image-tag <codefresh/k8s-dind-config image tag - default latest>
   --remote <set if run the script from github repo - default false>
+  --gcloud <set if your cluster provider is gcloud - default false>
   "
 }
 
@@ -39,7 +41,7 @@ set -e
 DIR=$(dirname $0)
 REPO_URL="https://raw.githubusercontent.com/codefresh-io/k8s-dind-config/master"
 
-while [[ $1 =~ ^(--(api-host|api-token|registry-token|namespace|context|image-tag|force|remote)) ]]
+while [[ $1 =~ ^(--(api-host|api-token|registry-token|namespace|context|image-tag|force|remote|gcloud)) ]]
 do
   key=$1
   value=$2
@@ -77,6 +79,10 @@ do
       ;;
     --image-tag)
       IMAGE_TAG="$value"
+      shift
+      ;;
+    --gcloud)
+      GCLOUD="$value"
       shift
       ;;
   esac
@@ -161,6 +167,13 @@ if [[ -z "$FORCE" ]]; then
     if [[ ! $CONTINUE =~ ^(yes|y) ]]; then
       echo "Exiting ..."
       exit 0
+    fi
+fi
+
+if  [[ ! -z "GCLOUD" ]] >&- ; then
+    if [ ! "$(kubectl auth can-i create clusterrolebinding)" = "yes" ]; then
+        echo -e "\n--------------\n  Create cluster role binding:"
+        kubectl --context ${KUBECONTEXT} create clusterrolebinding cluster-admin-binding-codefresh   --clusterrole cluster-admin --user $(gcloud config get-value account)
     fi
 fi
 
