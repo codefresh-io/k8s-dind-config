@@ -66,6 +66,7 @@ roleRef:
 
 ---
 kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
 metadata:
   name: {{APP_NAME}}:discovery
 rules:
@@ -73,6 +74,20 @@ rules:
   - '*'
   verbs:
   - get
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: {{APP_NAME}}-cluster-role-binding
+subjects:
+- kind: ServiceAccount
+  name: {{APP_NAME}}
+  namespace: {{AGENT_NAMESPACE}}
+roleRef:
+  kind: ClusterRole
+  name: {{APP_NAME}}:discovery
+  apiGroup: rbac.authorization.k8s.io
 
 ---
 apiVersion: v1
