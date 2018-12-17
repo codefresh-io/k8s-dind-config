@@ -75,8 +75,18 @@ subjects:
   namespace: {{AGENT_NAMESPACE}}
 roleRef:
   kind: ClusterRole
-  name: system:discovery
+  name: {{APP_NAME}}:discovery
   apiGroup: rbac.authorization.k8s.io
+
+---
+kind: ClusterRole
+metadata:
+  name: {{APP_NAME}}:discovery
+rules:
+- nonResourceURLs:
+  - '*'
+  verbs:
+  - get
 
 ---
 apiVersion: v1
