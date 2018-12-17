@@ -182,7 +182,7 @@ if [[ $REGISTER_STATUS == 200 ]]; then
  
  cat ${TMPDIR}/register.out
  
- kubectl apply -f $(cat ${TMPDIR}/register.out)
+ kubectl apply -f ${TMPDIR}/register.out
 
 else
  echo "ERROR: Failed to register cluster node with Codefresh"
