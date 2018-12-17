@@ -1,0 +1,40 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: {{AGENT_NAME}}
+    version: {{VERSION_VERSION}}
+  name: {{AGENT_NAME}}
+  namespace: {{AGENT_NAMESPACE}}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  strategy:
+    rollingUpdate:
+      maxSurge: 50%
+      maxUnavailable: 50%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: {{AGENT_NAME}}
+        version: {{VERSION_VERSION}}
+    spec:
+      containers:
+      - env:
+        - name: SELF_DEPLOYMENT_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: CODEFRESH_TOKEN
+          value: {{CODEFRESH_TOKEN}}
+        - name: CODEFRESH_HOST
+          value: {{CODEFRESH_HOST}}
+        - name: AGENT_MODE
+          value: {{AGENT_MODE}}
+        - name: AGENT_NAME
+          value: {{AGENT_NAME}}
+        image: {{AGENT_IMAGE_NAME}}:{{AGENT_IMAGE_TAG}}
+        imagePullPolicy: Always
+        name: {{AGENT_NAME}}
+      restartPolicy: Always

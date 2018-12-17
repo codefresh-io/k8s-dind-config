@@ -178,6 +178,9 @@ REGISTER_STATUS=$(curl -sSL -d @${TMPDIR}/register_data.json -H "Content-Type: a
 echo "Registration request completed with HTTP_STATUS_CODE=$REGISTER_STATUS"
 if [[ $REGISTER_STATUS == 200 ]]; then
  echo -e "Cluster Namespace has been successfully registered with Codefresh\n------"
+
+ cat ${TMPDIR}/register.out
+
 else
  echo "ERROR: Failed to register cluster node with Codefresh"
  [[ -f ${TMPDIR}/register.out ]] && cat ${TMPDIR}/register.out
