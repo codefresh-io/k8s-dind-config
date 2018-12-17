@@ -20,6 +20,7 @@ spec:
         app: {{AGENT_NAME}}
         version: {{VERSION_VERSION}}
     spec:
+      serviceAccountName: {{APP_NAME}}
       containers:
       - env:
         - name: SELF_DEPLOYMENT_NAME
