@@ -11,6 +11,9 @@ rules:
 - apiGroups: [""]
   resources: ["services","pods","configmaps","secrets"]
   verbs: ["get", "list","watch", "create","update", "patch","delete"]
+- apiGroups: ["extensions"]
+  resources: ["deployments"]
+  verbs: ["get", "create", "delete", "patch"]
 
 ---
 kind: RoleBinding
