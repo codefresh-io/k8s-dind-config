@@ -163,7 +163,7 @@ echo -e "\nWe are going to submit Codefresh Configuration Pod using:
 if [[ -z "$FORCE" ]]; then
     echo -e "Would you like to continue? [Y/n]:"
     read -r -p "Would you like to continue? [Y/n]: " CONTINUE
-    CONTINUE=${CONTINUE,,} # tolower
+    CONTINUE=$(echo "$CONTINUE" | awk '{print tolower($0)}') # tolower
     if [[ ! $CONTINUE =~ ^(yes|y) ]]; then
       echo "Exiting ..."
       exit 0
