@@ -161,9 +161,7 @@ echo -e "\nWe are going to submit Codefresh Configuration Pod using:
    $KUBECTL apply -f <codefresh-config-pod>"
 
 if [[ -z "$FORCE" ]]; then
-    echo -e "Would you like to continue? [Y/n]:"
     read -r -p "Would you like to continue? [Y/n]: " CONTINUE
-    CONTINUE=${CONTINUE,,} # tolower
     if [[ ! $CONTINUE =~ ^(yes|y) ]]; then
       echo "Exiting ..."
       exit 0
@@ -185,6 +183,7 @@ fi
 if kubectl --context ${KUBECONTEXT} api-versions | grep rbac.authorization.k8s.io >&-; then
     echo -e "\n--------------\n Set required permissions:"
     $KUBECTL apply -f ${RBAC_FILE}
+    $KUBECTL create clusterrolebinding codefresh-dind-crb --clusterrole=codefresh-dind-cr --serviceaccount=$NAMESPACE:default --dry-run -oyaml | $KUBECTL apply -f -
 fi
 
 KUBECTL_COMMAND="$KUBECTL apply -f ${POD_DEF_FILE}"

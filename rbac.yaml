@@ -9,11 +9,14 @@ metadata:
   name: codefresh-dind
 rules:
 - apiGroups: [""]
-  resources: ["services","pods","configmaps","secrets"]
+  resources: ["services","pods","configmaps","secrets","serviceaccounts"]
   verbs: ["get", "list","watch", "create","update", "patch","delete"]
 - apiGroups: ["extensions"]
   resources: ["deployments"]
   verbs: ["get", "create", "delete", "patch"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["rolebindings", "roles"]
+  verbs: ["get", "create", "patch"]
 
 ---
 kind: RoleBinding
@@ -27,3 +30,13 @@ roleRef:
   kind: Role
   name: codefresh-dind
   apiGroup: rbac.authorization.k8s.io
+
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: codefresh-dind-cr
+rules:
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["clusterrolebindings", "clusterroles"]
+  verbs: ["get", "create", "patch"]
