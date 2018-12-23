@@ -6,23 +6,25 @@ getRandomName() {
 	echo ${words[$RANDOM % ${#words[@]}]}-${words[$RANDOM % ${#words[@]}]}
 }
 
-name=$(getRandomName)
+namespace=$(getRandomName)
 
-echo "Generated name: $name"
+cluster=$(getRandomName)
+
+echo "Generated namespace  name: $namespace"
+echo "Generated cluster name: $cluster"
 
 echo "-----"
-createNsCmd="kubectl create namespace $name"
+createNsCmd="kubectl create namespace $namespace"
 echo "Running command: $createNsCmd"
 eval $createNsCmd
 
 echo "-----"
-createClusterInCfCmd="codefresh create clusters --kube-context $KUBE_CONTEXT --name-overwrite $name --behind-firewall --namespace $name"
+createClusterInCfCmd="codefresh create clusters --kube-context $KUBE_CONTEXT --name-overwrite $cluster --behind-firewall --namespace $namespace"
 echo "Running command: $createClusterInCfCmd"
 eval $createClusterInCfCmd
 
 
 echo "-----"
-createReInCfCmd="./codefresh-k8s-configure.sh --api-token 5bfe9cae7dbaec0100df3bc9.ed452bf263f6282cb372fbd2d5068954 --namespace $name --api-host $API_HOST --image-tag agent $name_overwrite"
+createReInCfCmd="./codefresh-k8s-configure.sh --api-token $TOKEN --namespace $namespace --api-host $API_HOST --image-tag agent $cluster"
 echo "Running command: $createReInCfCmd"
 eval $createReInCfCmd
-

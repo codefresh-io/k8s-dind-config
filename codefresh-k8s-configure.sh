@@ -192,4 +192,14 @@ echo $KUBECTL_COMMAND
 
 eval $KUBECTL_COMMAND
 
-$KUBECTL get pod $POD_NAME -a -owide
+$KUBECTL wait --for=condition=Ready pod/$POD_NAME
+echo "Streaming logs from pod $POD_NAME"
+echo -e "-------\n\n\n\n "
+$KUBECTL logs -f $POD_NAME
+echo "Config pod finished"
+echo -e "-------\n\n\n\n "
+
+ISSER_POD=$($KUBECTL get pods | grep 'isser'| awk '{print $1}')
+echo "Streaming logs from pod $ISSER_POD"
+$KUBECTL wait --for=condition=Ready pod/$ISSER_POD
+$KUBECTL logs -f $ISSER_POD
