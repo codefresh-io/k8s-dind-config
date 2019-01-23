@@ -1,3 +1,8 @@
+# Deprecated!
+Please use [Venona](https://github.com/codefresh-io/venona)
+
+
+
 ### Configure K8s for Codefresh builds
 
 The script configures your Kubernetes cluster namespace to run codefresh.io builds 
